@@ -110,7 +110,7 @@ class ResPartnerRelation(models.Model):
             return result
         type_id, is_reverse = self.type_selection_id\
             .get_type_from_selection_id()
-        self.type_id = self.env['res.partner.type'].browse(type_id)
+        self.type_id = self.env['res.partner.relation.type'].browse(type_id)
         partner_domain = []
         check_contact_type = self.type_id.contact_type_right
         check_partner_category = self.type_id.partner_category_right
@@ -143,14 +143,13 @@ class ResPartnerRelation(models.Model):
             ('right_partner_id', operator, value),
         ]
 
-    @api.model
+    @api.multi
     def _on_right_partner(self):
         '''Determine wether functions are called in a situation where the
         active partner is the right partner. Default False!
         '''
-        if set(self.ids) & set(self.env.context.get('active_ids', [])):
-            return True
-        return False
+        return set(self.mapped('right_partner_id').ids) &\
+            set(self.env.context.get('active_ids', []))
 
     @api.model
     def _correct_vals(self, vals):
@@ -320,22 +319,22 @@ class ResPartnerRelation(models.Model):
         else:
             assert False, 'Unknown active_model!'
 
-        partner_ids = []
+        partners = self.env['res.partner'].browse([])
         field_names = field_names[
             self.env.context.get('partner_relations_show_side', 'all')
         ]
         field_names = ['%s_partner_id' % n for n in field_names]
 
-        for relation in self.env[self.env.context.get('active_model')].read(
-                self.ids, field_names, load='_classic_write'):
+        for relation in self.env[self.env.context.get('active_model')].browse(
+                self.ids):
             for name in field_names:
-                partner_ids.append(relation[name])
+                partners += relation[name]
 
         return {
             'name': _('Related partners'),
             'type': 'ir.actions.act_window',
             'res_model': 'res.partner',
-            'domain': [('id', 'in', partner_ids)],
+            'domain': [('id', 'in', partners.ids)],
             'views': [(False, 'tree'), (False, 'form')],
             'view_type': 'form'
         }
