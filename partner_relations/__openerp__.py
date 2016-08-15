@@ -31,9 +31,6 @@
     "demo": [
         "data/demo.xml",
     ],
-    "test": [
-        "test/test_allow.yml",
-    ],
     "data": [
         "views/res_partner_relation_all.xml",
         'views/res_partner_relation.xml',
