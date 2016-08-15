@@ -2,9 +2,8 @@
     <data>
         <record id="tree_res_partner_relation_type" model="ir.ui.view">
             <field name="model">res.partner.relation.type</field>
-            <field name="type">tree</field>
             <field type="xml" name="arch">
-                <tree version="7.0" string="Partner relation">
+                <tree>
                     <field name="name" />
                     <field name="name_inverse" />
                     <field name="contact_type_left" />
@@ -15,14 +14,11 @@
         </record>
         <record id="form_res_partner_relation_type" model="ir.ui.view">
             <field name="model">res.partner.relation.type</field>
-            <field name="type">form</field>
             <field type="xml" name="arch">
-                <form version="7.0" string="Partner relation">
+                <form>
                     <sheet>
                         <group>
-                            <field name="allow_self" />
                             <group
-                                colspan="2" col="2"
                                 string="Left side of relation"
                             >
                                 <field name="name" />
@@ -30,13 +26,13 @@
                                 <field name="partner_category_left" />
                             </group>
                             <group
-                                colspan="2" col="2"
                                 string="Right side of relation"
                             >
                                 <field name="name_inverse" />
                                 <field name="contact_type_right" />
                                 <field name="partner_category_right" />
                             </group>
+                            <field name="allow_self" />
                         </group>
                     </sheet>
                 </form>
