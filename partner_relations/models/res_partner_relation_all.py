@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # © 2014-2016 Therp BV <http://therp.nl>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+from psycopg2.extensions import AsIs
 from openerp import models, fields, api
 from openerp.tools import drop_view_if_exists
 from .res_partner_relation_type_selection import\
@@ -83,7 +84,7 @@ class ResPartnerRelationAll(models.AbstractModel):
         cr.execute(
             '''create or replace view %(table)s as
             select
-                id * %(padding)d as id,
+                id * %(padding)s as id,
                 id as relation_id,
                 type_id,
                 cast('a' as char(1)) as record_type,
@@ -93,11 +94,11 @@ class ResPartnerRelationAll(models.AbstractModel):
                 date_start,
                 date_end,
                 active,
-                type_id * %(padding)d as type_selection_id
+                type_id * %(padding)s as type_selection_id
                 %(additional_view_fields)s
             from %(underlying_table)s
             union select
-                id * %(padding)d + 1,
+                id * %(padding)s + 1,
                 id,
                 type_id,
                 cast('b' as char(1)),
@@ -107,13 +108,14 @@ class ResPartnerRelationAll(models.AbstractModel):
                 date_start,
                 date_end,
                 active,
-                type_id * %(padding)d + 1
+                type_id * %(padding)s + 1
                 %(additional_view_fields)s
-            from %(underlying_table)s''' % {
-                'table': self._table,
+            from %(underlying_table)s''',
+            {
+                'table': AsIs(self._table),
                 'padding': PADDING,
-                'additional_view_fields': additional_view_fields,
-                'underlying_table': 'res_partner_relation',
+                'additional_view_fields': AsIs(additional_view_fields),
+                'underlying_table': AsIs('res_partner_relation'),
             }
         )
 

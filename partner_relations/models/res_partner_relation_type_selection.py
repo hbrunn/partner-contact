@@ -29,6 +29,7 @@ ORDER BY ResPartnerRelationTypeSelection.customer_name asc,
 ResPartnerRelationTypeSelection.caller_name asc;
 
 '''
+from psycopg2.extensions import AsIs
 from openerp import api, fields, models
 from openerp.tools import drop_view_if_exists
 from .res_partner_relation_type import ResPartnerRelationType
@@ -68,7 +69,7 @@ class ResPartnerRelationTypeSelection(models.Model):
         cr.execute(
             '''create or replace view %(table)s as
             select
-                id * %(padding)d as id,
+                id * %(padding)s as id,
                 id as type_id,
                 cast('a' as char(1)) as record_type,
                 name as name,
@@ -78,7 +79,7 @@ class ResPartnerRelationTypeSelection(models.Model):
                 partner_category_right as partner_category_other
             from %(underlying_table)s
             union select
-                id * %(padding)d + 1,
+                id * %(padding)s + 1,
                 id,
                 cast('b' as char(1)),
                 name_inverse,
@@ -86,10 +87,11 @@ class ResPartnerRelationTypeSelection(models.Model):
                 contact_type_left,
                 partner_category_right,
                 partner_category_left
-             from %(underlying_table)s''' % {
-                'table': self._table,
+             from %(underlying_table)s''',
+            {
+                'table': AsIs(self._table),
                 'padding': PADDING,
-                'underlying_table': 'res_partner_relation_type',
+                'underlying_table': AsIs('res_partner_relation_type'),
             })
 
         return super(ResPartnerRelationTypeSelection, self)._auto_init(
