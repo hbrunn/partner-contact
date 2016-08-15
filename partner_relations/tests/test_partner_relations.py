@@ -155,6 +155,30 @@ class TestPartnerRelation(common.TransactionCase):
         action = relation.get_action_related_partners()
         self.assertTrue(self.partner_1.id in action['domain'][0][2])
 
+    def test_relation_all(self):
+        relation_all_record = self.env['res.partner.relation.all']\
+            .with_context(
+                active_id=self.partner_2.id,
+                active_ids=self.partner_2.ids,
+        ).create({
+            'other_partner_id': self.partner_1.id,
+            'type_selection_id': self.relation_mixed.id * 10,
+        })
+        self.assertEqual(
+            relation_all_record.display_name, '%s %s %s' % (
+                self.partner_2.name,
+                'mixed',
+                self.partner_1.name,
+            )
+        )
+
+        domain = relation_all_record.onchange_type_selection_id()['domain']
+        self.assertTrue(
+            ('is_company', '=', False) in domain['other_partner_id'])
+        domain = relation_all_record.onchange_this_partner_id()['domain']
+        self.assertTrue(
+            ('contact_type_this', '=', 'c') in domain['type_selection_id'])
+
     def test_symmetric(self):
         relation = self.relation_model.create({
             'type_id': self.relation_symmetric.id,
