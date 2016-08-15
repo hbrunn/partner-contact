@@ -179,6 +179,13 @@ class TestPartnerRelation(common.TransactionCase):
         self.assertTrue(
             ('contact_type_this', '=', 'c') in domain['type_selection_id'])
 
+        relation_all_record.write({
+            'type_id': self.relation_mixed.id,
+        })
+        relation = relation_all_record.relation_id
+        relation_all_record.unlink()
+        self.assertFalse(relation.exists())
+
     def test_symmetric(self):
         relation = self.relation_model.create({
             'type_id': self.relation_symmetric.id,
