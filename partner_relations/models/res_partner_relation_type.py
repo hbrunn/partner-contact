@@ -37,7 +37,15 @@ class ResPartnerRelationType(models.Model):
         'Right partner category',
     )
     allow_self = fields.Boolean(
-        'Allow both sides to be the same',
+        'Reflexive',
+        help='This relation can be set up with the same partner left and '
+        'right',
+        default=False,
+    )
+    symmetric = fields.Boolean(
+        'Symmetric',
+        help='This relation is the same from right to left as from left to '
+        'right',
         default=False,
     )
 
@@ -47,3 +55,11 @@ class ResPartnerRelationType(models.Model):
             ('c', _('Company')),
             ('p', _('Person')),
         ]
+
+    @api.onchange('symmetric')
+    def _onchange_symmetric(self):
+        self.update({
+            'name_inverse': self.name,
+            'contact_type_right': self.contact_type_left,
+            'partner_category_right': self.partner_category_left,
+        })

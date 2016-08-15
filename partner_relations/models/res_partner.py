@@ -115,8 +115,13 @@ class ResPartner(models.Model):
                 [
                     '&',
                     ('relation_all_ids.type_id', '=', type_id),
-                    ('relation_all_ids.record_type', '=',
-                     'b' if is_inverse else 'a')
+                    (
+                        'relation_all_ids.record_type', 'in',
+                        ['a', 'b']
+                        if relation_type.type_id.symmetric
+                        else
+                        (['b'] if is_inverse else ['a'])
+                    )
                 ],
             ])
 

@@ -125,7 +125,8 @@ class ResPartnerRelationTypeSelection(models.Model):
             ('name', operator, name)
         ])
         inverse_relations = res_partner_relation_type.search([
-            ('name_inverse', operator, name)
+            ('name_inverse', operator, name),
+            ('symmetric', '=', False),
         ])
         return self.search(
             [

@@ -57,6 +57,12 @@ class TestPartnerRelation(common.TransactionCase):
             'contact_type_right': 'p',
         })
 
+        self.relation_symmetric = self.relation_type_model.create({
+            'name': 'sym',
+            'name_inverse': 'sym',
+            'symmetric': True,
+        })
+
     def test_self_allowed(self):
         self.relation_model.create({
             'type_id': self.relation_allow.id,
@@ -148,3 +154,15 @@ class TestPartnerRelation(common.TransactionCase):
         })
         action = relation.get_action_related_partners()
         self.assertTrue(self.partner_1.id in action['domain'][0][2])
+
+    def test_symmetric(self):
+        relation = self.relation_model.create({
+            'type_id': self.relation_symmetric.id,
+            'left_partner_id': self.partner_2.id,
+            'right_partner_id': self.partner_1.id,
+        })
+        partners = self.env['res.partner'].search([
+            ('search_relation_id', '=', relation.type_selection_id.id)
+        ])
+        self.assertTrue(self.partner_1 in partners)
+        self.assertTrue(self.partner_2 in partners)
