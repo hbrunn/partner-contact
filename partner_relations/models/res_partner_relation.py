@@ -26,13 +26,13 @@ class ResPartnerRelation(models.Model):
     type_selection_id = fields.Many2one(
         comodel_name='res.partner.relation.type.selection',
         compute='_compute_fields',
-        fnct_inv=lambda *args: None,
+        inverse=lambda *args: None,
         string='Type',
     )
     partner_id_display = fields.Many2one(
         comodel_name='res.partner',
         compute='_compute_fields',
-        fnct_inv=lambda *args: None,
+        inverse=lambda *args: None,
         string='Partner',
     )
     allow_self = fields.Boolean(related='type_id.allow_self')

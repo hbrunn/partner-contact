@@ -27,7 +27,6 @@ select id, record_type,
 from FULL_LIST as ResPartnerRelationTypeSelection where record_type = 'c'
 ORDER BY ResPartnerRelationTypeSelection.customer_name asc,
 ResPartnerRelationTypeSelection.caller_name asc;
-
 """
 from psycopg2.extensions import AsIs
 

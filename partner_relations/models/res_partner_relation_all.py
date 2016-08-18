@@ -58,7 +58,7 @@ class ResPartnerRelationAll(models.AbstractModel):
         readonly=True,
     )
     record_type = fields.Selection(
-        ResPartnerRelationTypeSelection._RECORD_TYPES,
+        selection=ResPartnerRelationTypeSelection._RECORD_TYPES,
         string='Record Type',
         readonly=True,
     )
