@@ -2,8 +2,10 @@
 # © 2014-2016 Therp BV <http://therp.nl>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 from psycopg2.extensions import AsIs
-from openerp import models, fields, api
+
+from openerp import api, fields, models
 from openerp.tools import drop_view_if_exists
+
 from .res_partner_relation_type_selection import\
     ResPartnerRelationTypeSelection
 from .res_partner import PADDING
@@ -17,7 +19,7 @@ class ResPartnerRelationAll(models.AbstractModel):
     _description = 'All (non-inverse + inverse) relations between partners'
 
     _additional_view_fields = []
-    '''append to this list if you added fields to res_partner_relation that
+    """append to this list if you added fields to res_partner_relation that
     you need in this model and related fields are not adequate (ie for sorting)
     You must use the same name as in res_partner_relation.
     Don't overwrite this list in your declaration but append in _auto_init:
@@ -28,50 +30,44 @@ class ResPartnerRelationAll(models.AbstractModel):
             cr, context=context)
 
     my_field = fields...
-    '''
+    """
 
     this_partner_id = fields.Many2one(
-        'res.partner',
+        comodel_name='res.partner',
         string='Current Partner',
         required=True,
     )
-
     other_partner_id = fields.Many2one(
-        'res.partner',
+        comodel_name='res.partner',
         string='Other Partner',
         required=True,
     )
-
     type_id = fields.Many2one(
-        'res.partner.relation.type',
+        comodel_name='res.partner.relation.type',
         string='Relation Type',
         required=True,
     )
-
     type_selection_id = fields.Many2one(
-        'res.partner.relation.type.selection',
+        comodel_name='res.partner.relation.type.selection',
         string='Relation Type',
         required=True,
     )
-
     relation_id = fields.Many2one(
-        'res.partner.relation',
-        'Relation',
+        comodel_name='res.partner.relation',
+        string='Relation',
         readonly=True,
     )
-
     record_type = fields.Selection(
         ResPartnerRelationTypeSelection._RECORD_TYPES,
-        'Record Type',
+        string='Record Type',
         readonly=True,
     )
-
     contact_type = fields.Selection(
-        lambda s: s.env['res.partner.relation.type']._get_partner_types(),
-        'Partner Type',
+        selection=lambda self: self.env['res.partner.relation.type']\
+            ._get_partner_types(),
+        string='Partner Type',
         default=lambda self: self._get_default_contact_type()
     )
-
     date_start = fields.Date('Starting date')
     date_end = fields.Date('Ending date')
     active = fields.Boolean('Active', default=True)
@@ -82,7 +78,7 @@ class ResPartnerRelationAll(models.AbstractModel):
         additional_view_fields = (',' + additional_view_fields)\
             if additional_view_fields else ''
         cr.execute(
-            '''create or replace view %(table)s as
+            """create or replace view %(table)s as
             select
                 id * %(padding)s as id,
                 id as relation_id,
@@ -110,7 +106,7 @@ class ResPartnerRelationAll(models.AbstractModel):
                 active,
                 type_id * %(padding)s + 1
                 %(additional_view_fields)s
-            from %(underlying_table)s''',
+            from %(underlying_table)s""",
             {
                 'table': AsIs(self._table),
                 'padding': PADDING,
@@ -118,7 +114,6 @@ class ResPartnerRelationAll(models.AbstractModel):
                 'underlying_table': AsIs('res_partner_relation'),
             }
         )
-
         return super(ResPartnerRelationAll, self)._auto_init(
             cr, context=context)
 

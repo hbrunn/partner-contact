@@ -2,49 +2,58 @@
 # © 2013-2016 Therp BV <http://therp.nl>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 import numbers
-from openerp import _, models, fields, exceptions, api
+
+from openerp import _, api, exceptions, fields, models
 from openerp.osv.expression import is_leaf, OR, FALSE_LEAF
+
 
 PADDING = 10
 
 
 class ResPartner(models.Model):
+    """Extend partner with relations and allow to search for relations
+    in various ways.
+    """
     _inherit = 'res.partner'
 
     relation_count = fields.Integer(
-        'Relation Count',
+        string='Relation Count',
         compute="_compute_relation_count"
     )
-
     relation_ids = fields.One2many(
-        'res.partner.relation', string='Relations',
+        comodel_name='res.partner.relation',
+        string='Relations',
         compute='_compute_relation_ids',
         selectable=False,
     )
-
     relation_all_ids = fields.One2many(
-        'res.partner.relation.all', 'this_partner_id',
+        comodel_name='res.partner.relation.all',
+        inverse_name='this_partner_id',
         string='All relations with current partner',
-        auto_join=True, selectable=False, copy=False,
+        auto_join=True,
+        selectable=False,
+        copy=False,
     )
-
     search_relation_id = fields.Many2one(
-        'res.partner.relation.type.selection', compute=lambda self: None,
-        search='_search_relation_id', string='Has relation of type',
+        comodel_name='res.partner.relation.type.selection',
+        compute=lambda self: None,
+        search='_search_relation_id',
+        string='Has relation of type',
     )
-
     search_relation_partner_id = fields.Many2one(
-        'res.partner', compute=lambda self: None,
-        search='_search_related_partner_id', string='Has relation with',
+        comodel_name='res.partner',
+        compute=lambda self: None,
+        search='_search_related_partner_id',
+        string='Has relation with',
     )
-
     search_relation_date = fields.Date(
-        compute=lambda self: None, search='_search_relation_date',
+        compute=lambda self: None,
+        search='_search_relation_date',
         string='Relation valid',
     )
-
     search_relation_partner_category_id = fields.Many2one(
-        'res.partner.category', compute=lambda self: None,
+        comodel_name='res.partner.category',
+        compute=lambda self: None,
         search='_search_related_partner_category_id',
         string='Has relation with a partner in category',
     )
@@ -56,11 +65,11 @@ class ResPartner(models.Model):
 
         Don't count inactive relations.
         """
-        self.relation_count = len([r for r in self.relation_ids if r.active])
+        self.relation_count = len(self.relation_ids.filtered('active'))
 
     @api.multi
     def _compute_relation_ids(self):
-        '''getter for relation_ids'''
+        """getter for relation_ids"""
         self.env.cr.execute(
             "select p.id, array_agg(r.id) "
             "from res_partner p join res_partner_relation r "
@@ -78,15 +87,12 @@ class ResPartner(models.Model):
     @api.model
     def _search_relation_id(self, operator, value):
         result = []
-
         if operator not in [
             '=', '!=', 'like', 'not like', 'ilike', 'not ilike', 'in', 'not in'
         ]:
             raise exceptions.ValidationError(
                 _('Unsupported search operator "%s"') % operator)
-
         relation_type_selection = []
-
         if operator == '=' and isinstance(value, numbers.Integral):
             relation_type_selection += self\
                 .env['res.partner.relation.type.selection']\
@@ -103,13 +109,10 @@ class ResPartner(models.Model):
                 .search([
                     ('type_id.name', operator, value),
                 ])
-
         if not relation_type_selection:
             result = [FALSE_LEAF]
-
         for relation_type in relation_type_selection:
             type_id, is_inverse = relation_type.get_type_from_selection_id()
-
             result = OR([
                 result,
                 [
@@ -124,7 +127,6 @@ class ResPartner(models.Model):
                     )
                 ],
             ])
-
         return result
 
     @api.model
@@ -138,7 +140,6 @@ class ResPartner(models.Model):
         if operator != '=':
             raise exceptions.ValidationError(
                 _('Unsupported search operator "%s"') % operator)
-
         return [
             '&',
             '|',
@@ -169,7 +170,6 @@ class ResPartner(models.Model):
                     date_args = [
                         ('search_relation_date', '=', fields.Date.today()),
                     ]
-
         # because of auto_join, we have to do the active test by hand
         active_args = []
         if self.env.context.get('active_test', True):
@@ -177,7 +177,6 @@ class ResPartner(models.Model):
                 if is_leaf(arg) and arg[0].startswith('search_relation'):
                     active_args = [('relation_all_ids.active', '=', True)]
                     break
-
         return super(ResPartner, self).search(
             args + date_args + active_args, offset=offset, limit=limit,
             order=order, count=count)

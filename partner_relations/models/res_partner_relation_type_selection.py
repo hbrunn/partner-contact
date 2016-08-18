@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # © 2014-2016 Therp BV <http://therp.nl>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
-'''
+"""
 Created on 23 may 2014
 
 @author: Ronald Portier, Therp
@@ -28,16 +28,18 @@ from FULL_LIST as ResPartnerRelationTypeSelection where record_type = 'c'
 ORDER BY ResPartnerRelationTypeSelection.customer_name asc,
 ResPartnerRelationTypeSelection.caller_name asc;
 
-'''
+"""
 from psycopg2.extensions import AsIs
+
 from openerp import api, fields, models
 from openerp.tools import drop_view_if_exists
+
 from .res_partner_relation_type import ResPartnerRelationType
 from .res_partner import PADDING
 
 
 class ResPartnerRelationTypeSelection(models.Model):
-    '''Virtual relation types'''
+    """Virtual relation types"""
     _name = 'res.partner.relation.type.selection'
     _description = 'All relation types'
     _auto = False  # Do not try to create table in _auto_init(..)
@@ -50,24 +52,36 @@ class ResPartnerRelationTypeSelection(models.Model):
         ('b', 'Inverse type'),
     ]
 
-    record_type = fields.Selection(_RECORD_TYPES, 'Record type')
-    type_id = fields.Many2one('res.partner.relation.type', 'Type')
+    record_type = fields.Selection(
+        selection=_RECORD_TYPES,
+        string='Record type',
+    )
+    type_id = fields.Many2one(
+        comodel_name='res.partner.relation.type',
+        string='Type',
+    )
     name = fields.Char('Name')
     contact_type_this = fields.Selection(
-        ResPartnerRelationType._get_partner_types.im_func,
-        'Current record\'s partner type')
+        selection=ResPartnerRelationType._get_partner_types.im_func,
+        string='Current record\'s partner type',
+    )
     contact_type_other = fields.Selection(
-        ResPartnerRelationType._get_partner_types.im_func,
-        'Other record\'s partner type')
+        selection=ResPartnerRelationType._get_partner_types.im_func,
+        string='Other record\'s partner type',
+    )
     partner_category_this = fields.Many2one(
-        'res.partner.category', 'Current record\'s category')
+        comodel_name='res.partner.category',
+        string='Current record\'s category',
+    )
     partner_category_other = fields.Many2one(
-        'res.partner.category', 'Other record\'s category')
+        comodel_name='res.partner.category',
+        string='Other record\'s category',
+    )
 
     def _auto_init(self, cr, context=None):
         drop_view_if_exists(cr, self._table)
         cr.execute(
-            '''create or replace view %(table)s as
+            """create or replace view %(table)s as
             select
                 id * %(padding)s as id,
                 id as type_id,
@@ -87,7 +101,7 @@ class ResPartnerRelationTypeSelection(models.Model):
                 contact_type_left,
                 partner_category_right,
                 partner_category_left
-             from %(underlying_table)s''',
+             from %(underlying_table)s""",
             {
                 'table': AsIs(self._table),
                 'padding': PADDING,
@@ -141,7 +155,7 @@ class ResPartnerRelationTypeSelection(models.Model):
 
     @api.multi
     def get_type_from_selection_id(self):
-        """Selection id ic computed from id of underlying type and the
+        """Selection id is computed from id of underlying type and the
         kind of record. This function does the inverse computation to give
         back the original type id, and about the record type."""
         type_id = self.id / PADDING

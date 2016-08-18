@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # © 2013-2016 Therp BV <http://therp.nl>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
-from openerp import models, fields, api, exceptions, _
+from openerp import _, api, exceptions, fields, models
 from openerp.osv.expression import FALSE_LEAF
+
 from .res_partner import PADDING
 
 
 class ResPartnerRelation(models.Model):
-    '''Model res.partner.relation is used to describe all links or relations
+    """Model res.partner.relation is used to describe all links or relations
     between partners in the database.
 
     In many parts of the code we have to know whether the active partner is
@@ -17,71 +18,64 @@ class ResPartnerRelation(models.Model):
     Because the active partner is crucial for the working of partner
     relationships, we make sure on the res.partner model that the partner id
     is set in the context where needed.
-    '''
+    """
     _name = 'res.partner.relation'
     _description = 'Partner relation'
     _order = 'active desc, date_start desc, date_end desc'
 
     type_selection_id = fields.Many2one(
-        'res.partner.relation.type.selection',
+        comodel_name='res.partner.relation.type.selection',
         compute='_compute_fields',
         fnct_inv=lambda *args: None,
         string='Type',
     )
-
     partner_id_display = fields.Many2one(
-        'res.partner',
+        comodel_name='res.partner',
         compute='_compute_fields',
         fnct_inv=lambda *args: None,
         string='Partner',
     )
-
     allow_self = fields.Boolean(related='type_id.allow_self')
-
     left_contact_type = fields.Selection(
-        lambda s: s.env['res.partner.relation.type']._get_partner_types(),
-        'Left Partner Type',
+        selection=lambda self: self.env['res.partner.relation.type']\
+            ._get_partner_types(),
+        string='Left Partner Type',
         compute='_compute_any_partner_id',
         store=True,
     )
-
     right_contact_type = fields.Selection(
-        lambda s: s.env['res.partner.relation.type']._get_partner_types(),
-        'Right Partner Type',
+        selection=lambda self: self.env['res.partner.relation.type']\
+            ._get_partner_types(),
+        string='Right Partner Type',
         compute='_compute_any_partner_id',
         store=True,
     )
-
     any_partner_id = fields.Many2many(
-        'res.partner',
+        comodel_name='res.partner',
         string='Partner',
         compute='_compute_any_partner_id',
         search='_search_any_partner_id'
     )
-
     left_partner_id = fields.Many2one(
-        'res.partner',
+        comodel_name='res.partner',
         string='Source Partner',
         required=True,
         auto_join=True,
         ondelete='cascade',
     )
-
     right_partner_id = fields.Many2one(
-        'res.partner',
+        comodel_name='res.partner',
         string='Destination Partner',
         required=True,
         auto_join=True,
         ondelete='cascade',
     )
-
     type_id = fields.Many2one(
-        'res.partner.relation.type',
+        comodel_name='res.partner.relation.type',
         string='Type',
         required=True,
         auto_join=True,
     )
-
     date_start = fields.Date('Starting date')
     date_end = fields.Date('Ending date')
     active = fields.Boolean('Active', default=True)
@@ -102,7 +96,7 @@ class ResPartnerRelation(models.Model):
 
     @api.onchange('type_selection_id')
     def _onchange_type_selection_id(self):
-        '''Set domain on partner_id_display, when selection a relation type'''
+        """Set domain on partner_id_display, when selection a relation type"""
         result = {
             'domain': {'partner_id_display': [FALSE_LEAF]},
         }
@@ -145,9 +139,9 @@ class ResPartnerRelation(models.Model):
 
     @api.multi
     def _on_right_partner(self):
-        '''Determine wether functions are called in a situation where the
+        """Determine wether functions are called in a situation where the
         active partner is the right partner. Default False!
-        '''
+        """
         return set(self.mapped('right_partner_id').ids) &\
             set(self.env.context.get('active_ids', []))
 
@@ -159,14 +153,11 @@ class ResPartnerRelation(models.Model):
         vals = vals.copy()
         if 'type_selection_id' not in vals:
             return vals
-
         type_id, is_reverse = self\
             .env['res.partner.relation.type.selection']\
             .browse(vals['type_selection_id'])\
             .get_type_from_selection_id()
-
         vals['type_id'] = type_id
-
         if self._context.get('active_id'):
             if is_reverse:
                 vals['right_partner_id'] = self._context['active_id']
@@ -283,11 +274,17 @@ class ResPartnerRelation(models.Model):
             ('right_partner_id', '=', self.right_partner_id.id),
         ]
         if self.date_start:
-            domain += ['|', ('date_end', '=', False),
-                            ('date_end', '>=', self.date_start)]
+            domain += [
+                '|',
+                ('date_end', '=', False),
+                ('date_end', '>=', self.date_start),
+            ]
         if self.date_end:
-            domain += ['|', ('date_start', '=', False),
-                            ('date_start', '<=', self.date_end)]
+            domain += [
+                '|',
+                ('date_start', '=', False),
+                ('date_start', '<=', self.date_end),
+            ]
         if self.search(domain):
             raise exceptions.Warning(
                 _('There is already a similar relation with overlapping dates')
@@ -295,12 +292,13 @@ class ResPartnerRelation(models.Model):
 
     @api.multi
     def get_action_related_partners(self):
-        '''return a window action showing a list of partners taking part in the
+        """return a window action showing a list of partners taking part in the
         relations names by ids. Context key 'partner_relations_show_side'
         determines if we show 'left' side, 'right' side or 'all' (default)
         partners.
         If active_model is res.partner.relation.all, left=this and
-        right=other'''
+        right=other.
+        """
         field_names = {}
 
         if self.env.context.get('active_model', self._name) == self._name:
@@ -318,18 +316,15 @@ class ResPartnerRelation(models.Model):
             }
         else:
             assert False, 'Unknown active_model!'
-
         partners = self.env['res.partner'].browse([])
         field_names = field_names[
             self.env.context.get('partner_relations_show_side', 'all')
         ]
         field_names = ['%s_partner_id' % n for n in field_names]
-
         for relation in self.env[self.env.context.get('active_model')].browse(
                 self.ids):
             for name in field_names:
                 partners += relation[name]
-
         return {
             'name': _('Related partners'),
             'type': 'ir.actions.act_window',

@@ -10,23 +10,19 @@ from openerp.exceptions import ValidationError
 class TestPartnerRelation(common.TransactionCase):
 
     def setUp(self):
-
         super(TestPartnerRelation, self).setUp()
 
         self.partner_model = self.env['res.partner']
         self.relation_type_model = self.env['res.partner.relation.type']
         self.relation_model = self.env['res.partner.relation']
-
         self.partner_1 = self.partner_model.create({
             'name': 'Test User 1',
             'is_company': False,
         })
-
         self.partner_2 = self.partner_model.create({
             'name': 'Test Company',
             'is_company': True,
         })
-
         self.relation_allow = self.relation_type_model.create({
             'name': 'allow',
             'name_inverse': 'allow_inverse',
@@ -34,7 +30,6 @@ class TestPartnerRelation(common.TransactionCase):
             'contact_type_right': 'p',
             'allow_self': True
         })
-
         self.relation_disallow = self.relation_type_model.create({
             'name': 'disallow',
             'name_inverse': 'disallow_inverse',
@@ -42,21 +37,18 @@ class TestPartnerRelation(common.TransactionCase):
             'contact_type_right': 'p',
             'allow_self': False
         })
-
         self.relation_default = self.relation_type_model.create({
             'name': 'default',
             'name_inverse': 'default_inverse',
             'contact_type_left': 'p',
             'contact_type_right': 'p',
         })
-
         self.relation_mixed = self.relation_type_model.create({
             'name': 'mixed',
             'name_inverse': 'mixed_inverse',
             'contact_type_left': 'c',
             'contact_type_right': 'p',
         })
-
         self.relation_symmetric = self.relation_type_model.create({
             'name': 'sym',
             'name_inverse': 'sym',
