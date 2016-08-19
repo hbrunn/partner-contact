@@ -9,6 +9,7 @@
                     string="Partner Relations"
                     colors="gray:(date_end and date_end &lt; current_date) or not active;blue:date_start &gt; current_date"
                     editable="top"
+                    on_write="on_create_write"
                     >
                     <field
                         name="this_partner_id"

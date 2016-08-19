@@ -28,7 +28,7 @@
                             type="action"
                             context="{
                                 'search_default_this_partner_id': active_id,
-                                'default_left_partner_id': active_id,
+                                'default_this_partner_id': active_id,
                                 'active_model': 'res.partner',
                                 'active_id': id,
                                 'active_ids': [id],

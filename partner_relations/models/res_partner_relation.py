@@ -29,12 +29,6 @@ class ResPartnerRelation(models.Model):
         inverse=lambda *args: None,
         string='Type',
     )
-    partner_id_display = fields.Many2one(
-        comodel_name='res.partner',
-        compute='_compute_fields',
-        inverse=lambda *args: None,
-        string='Partner',
-    )
     allow_self = fields.Boolean(related='type_id.allow_self')
     left_contact_type = fields.Selection(
         selection=lambda self: self.env['res.partner.relation.type']\
@@ -88,18 +82,19 @@ class ResPartnerRelation(models.Model):
                 .env['res.partner.relation.type.selection']\
                 .browse(this.type_id.id * PADDING +
                         (on_right_partner and 1 or 0))
-            this.partner_id_display = (
-                this.left_partner_id
-                if on_right_partner
-                else this.right_partner_id
-            )
 
     @api.onchange('type_selection_id')
     def _onchange_type_selection_id(self):
-        """Set domain on partner_id_display, when selection a relation type"""
+        """Set domain on left and right partner on change of relation type"""
         result = {
-            'domain': {'partner_id_display': [FALSE_LEAF]},
+            'domain': {
+                'left_partner_id': [FALSE_LEAF],
+                'right_partner_id': [FALSE_LEAF],
+            },
         }
+        # TODO: totally rewrite. For the moment disable:
+        return result
+        # END TODO 
         if not self.type_selection_id:
             return result
         type_id, is_reverse = self.type_selection_id\
@@ -109,7 +104,6 @@ class ResPartnerRelation(models.Model):
         check_contact_type = self.type_id.contact_type_right
         check_partner_category = self.type_id.partner_category_right
         if is_reverse:
-            # partner_id_display is left partner
             check_contact_type = self.type_id.contact_type_left
             check_partner_category = self.type_id.partner_category_left
         if check_contact_type == 'c':
@@ -119,7 +113,7 @@ class ResPartnerRelation(models.Model):
         if check_partner_category:
             partner_domain.append(
                 ('category_id', 'child_of', check_partner_category.ids))
-        result['domain']['partner_id_display'] = partner_domain
+        result['domain']['left_partner_id'] = partner_domain
         return result
 
     @api.one
@@ -158,16 +152,29 @@ class ResPartnerRelation(models.Model):
             .browse(vals['type_selection_id'])\
             .get_type_from_selection_id()
         vals['type_id'] = type_id
+        # If adding through view with just left_partner_id
+        # and right_partner_id, we have to use those, and not look at
+        # other fields:
+        if 'left_partner_id' in vals or 'right_partner_id' in vals:
+            if is_reverse:
+                left_partner_id = False
+                right_partner_id = False
+                if 'left_partner_id' in vals:
+                    right_partner_id = vals['left_partner_id']
+                    del vals['left_partner_id']
+                if 'right_partner_id' in vals:
+                    left_partner_id = vals['right_partner_id']
+                    del vals['right_partner_id']
+                if left_partner_id:
+                    vals['left_partner_id'] = left_partner_id
+                if right_partner_id:
+                    vals['right_partner_id'] = right_partner_id
+            return vals
         if self._context.get('active_id'):
             if is_reverse:
                 vals['right_partner_id'] = self._context['active_id']
             else:
                 vals['left_partner_id'] = self._context['active_id']
-        if vals.get('partner_id_display'):
-            if is_reverse:
-                vals['left_partner_id'] = vals['partner_id_display']
-            else:
-                vals['right_partner_id'] = vals['partner_id_display']
         if vals.get('other_partner_id'):
             if is_reverse:
                 vals['left_partner_id'] = vals['other_partner_id']

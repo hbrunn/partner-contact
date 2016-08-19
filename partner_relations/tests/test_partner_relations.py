@@ -138,8 +138,9 @@ class TestPartnerRelation(common.TransactionCase):
         )
         relation.read()
         domain = relation._onchange_type_selection_id()['domain']
+        # TODO: HAs to be rewritten: 
         self.assertTrue(
-            ('is_company', '=', True) in domain['partner_id_display']
+            ('is_company', '=', True) in domain['left_partner_id']
         )
         relation.write({
             'type_selection_id': relation.type_selection_id.id,

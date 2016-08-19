@@ -206,6 +206,16 @@ class ResPartnerRelationAll(models.AbstractModel):
         return self.browse(res.id * PADDING)
 
     @api.multi
+    def on_create_write(self):
+        """Dummy to enforce view refresh after create."""
+        if not self:
+            return []
+        relations = self.search([
+            ('relation_id', '=', self.relation_id.id),
+        ])
+        return relations.ids
+
+    @api.multi
     def unlink(self):
         """divert non-problematic creates to underlying table"""
         return self._get_underlying_object().unlink()
