@@ -13,6 +13,7 @@
                 </tree>
             </field>
         </record>
+
         <record id="form_res_partner_relation_type" model="ir.ui.view">
             <field name="model">res.partner.relation.type</field>
             <field type="xml" name="arch">
@@ -22,7 +23,7 @@
                             <group
                                 string="Left side of relation"
                                 name="left"
-                            >
+                                >
                                 <field name="name" />
                                 <field name="contact_type_left" />
                                 <field name="partner_category_left" />
@@ -31,7 +32,7 @@
                                 string="Right side of relation"
                                 name="right"
                                 attrs="{'invisible': [('symmetric', '=', True)]}"
-                            >
+                                >
                                 <field name="name_inverse" />
                                 <field name="contact_type_right" />
                                 <field name="partner_category_right" />
