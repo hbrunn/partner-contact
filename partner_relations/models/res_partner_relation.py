@@ -31,20 +31,6 @@ class ResPartnerRelation(models.Model):
         string='Type',
     )
     allow_self = fields.Boolean(related='type_id.allow_self')
-    left_contact_type = fields.Selection(
-        selection=lambda self: self.env['res.partner.relation.type']\
-            ._get_partner_types(),
-        string='Left Partner Type',
-        compute='_compute_any_partner_id',
-        store=True,
-    )
-    right_contact_type = fields.Selection(
-        selection=lambda self: self.env['res.partner.relation.type']\
-            ._get_partner_types(),
-        string='Right Partner Type',
-        compute='_compute_any_partner_id',
-        store=True,
-    )
     any_partner_id = fields.Many2many(
         comodel_name='res.partner',
         string='Partner',
@@ -187,8 +173,6 @@ class ResPartnerRelation(models.Model):
     @api.one
     @api.depends('left_partner_id', 'right_partner_id')
     def _compute_any_partner_id(self):
-        self.left_contact_type = self.left_partner_id.get_partner_type()
-        self.right_contact_type = self.right_partner_id.get_partner_type()
         self.any_partner_id = self.left_partner_id + self.right_partner_id
 
     @api.model
