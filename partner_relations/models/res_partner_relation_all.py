@@ -8,15 +8,18 @@ from openerp.tools import drop_view_if_exists
 
 from .res_partner_relation_type_selection import\
     ResPartnerRelationTypeSelection
-from .res_partner import PADDING
+
+
+PADDING = 10
 
 
 class ResPartnerRelationAll(models.AbstractModel):
     _auto = False
     _log_access = False
     _name = 'res.partner.relation.all'
-    _overlays = 'res.partner.relation'
     _description = 'All (non-inverse + inverse) relations between partners'
+
+    _overlays = 'res.partner.relation'
 
     _additional_view_fields = []
     """append to this list if you added fields to res_partner_relation that
@@ -180,6 +183,22 @@ class ResPartnerRelationAll(models.AbstractModel):
             },
         }
 
+    @api.model
+    def _correct_vals(self, vals):
+        """Fill left and right partner from this and other partner.
+
+        Do not bother about the type of selection, and wether we will need
+        to switch left and right, This will be handled by the underlying model.
+        """
+        vals = vals.copy()
+        if 'this_partner_id' in vals:
+            vals['left_partner_id'] = vals['this_partner_id']
+            del vals['this_partner_id']
+        if 'other_partner_id' in vals:
+            vals['right_partner_id'] = vals['other_partner_id']
+            del vals['other_partner_id']
+        return vals
+
     @api.multi
     def write(self, vals):
         """divert non-problematic writes to underlying table"""
@@ -189,6 +208,7 @@ class ResPartnerRelationAll(models.AbstractModel):
             for key, val in vals.iteritems()
             if not self._fields[key].readonly
         }
+        vals = self._correct_vals(vals)
         return underlying_objs.write(vals)
 
     @api.model
@@ -197,23 +217,21 @@ class ResPartnerRelationAll(models.AbstractModel):
 
         Create a res.partner.relation but return the converted id
         """
+        is_reverse = False
+        if 'type_selection_id' in vals:
+            relation_model = self.env['res.partner.relation']
+            type_id, is_reverse = relation_model.get_type_from_selection_id(
+                vals['type_selection_id']
+            )
         vals = {
             key: val
             for key, val in vals.iteritems()
             if not self._fields[key].readonly
         }
+        vals = self._correct_vals(vals)
         res = self.env[self._overlays].create(vals)
-        return self.browse(res.id * PADDING)
-
-    @api.multi
-    def on_create_write(self):
-        """Dummy to enforce view refresh after create."""
-        if not self:
-            return []
-        relations = self.search([
-            ('relation_id', '=', self.relation_id.id),
-        ])
-        return relations.ids
+        return_id = res.id * PADDING + (is_reverse and 1 or 0)
+        return self.browse(return_id)
 
     @api.multi
     def unlink(self):

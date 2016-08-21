@@ -34,7 +34,9 @@ from openerp import api, fields, models
 from openerp.tools import drop_view_if_exists
 
 from .res_partner_relation_type import ResPartnerRelationType
-from .res_partner import PADDING
+
+
+PADDING = 10
 
 
 class ResPartnerRelationTypeSelection(models.Model):

@@ -7,9 +7,6 @@ from openerp import _, api, exceptions, fields, models
 from openerp.osv.expression import is_leaf, OR, FALSE_LEAF
 
 
-PADDING = 10
-
-
 class ResPartner(models.Model):
     """Extend partner with relations and allow to search for relations
     in various ways.
