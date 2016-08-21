@@ -108,7 +108,6 @@ class ResPartnerRelationTypeSelection(models.Model):
                 'padding': PADDING,
                 'underlying_table': AsIs('res_partner_relation_type'),
             })
-
         return super(ResPartnerRelationTypeSelection, self)._auto_init(
             cr, context=context)
 
