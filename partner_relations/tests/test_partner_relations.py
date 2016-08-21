@@ -145,8 +145,6 @@ class TestPartnerRelation(common.TransactionCase):
         relation.write({
             'type_selection_id': relation.type_selection_id.id,
         })
-        action = relation.get_action_related_partners()
-        self.assertTrue(self.partner_1.id in action['domain'][0][2])
 
     def test_relation_all(self):
         relation_all_record = self.env['res.partner.relation.all']\
