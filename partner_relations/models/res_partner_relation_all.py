@@ -182,12 +182,16 @@ class ResPartnerRelationAll(models.AbstractModel):
         }
 
     @api.model
-    def _correct_vals(self, vals):
-        """Fill left and right partner from this and other partner.
+    def get_type_from_selection_id(self, selection_type_id):
+        """Return tuple with type_id and reverse indication for
+        selection_type_id."""
+        selection_model = self.env['res.partner.relation.type.selection']
+        selection = selection_model.browse(selection_type_id)
+        return selection.get_type_from_selection_id()
 
-        Do not bother about the type of selection, and wether we will need
-        to switch left and right, This will be handled by the underlying model.
-        """
+    @api.model
+    def _correct_vals(self, vals):
+        """Fill left and right partner from this and other partner."""
         vals = vals.copy()
         if 'this_partner_id' in vals:
             vals['left_partner_id'] = vals['this_partner_id']
@@ -195,6 +199,27 @@ class ResPartnerRelationAll(models.AbstractModel):
         if 'other_partner_id' in vals:
             vals['right_partner_id'] = vals['other_partner_id']
             del vals['other_partner_id']
+        if 'type_selection_id' not in vals:
+            return vals
+        type_id, is_reverse = self.get_type_from_selection_id(
+            vals['type_selection_id']
+        )
+        vals['type_id'] = type_id
+        # Need to switch right and left partner if we are in reverse id:
+        if 'left_partner_id' in vals or 'right_partner_id' in vals:
+            if is_reverse:
+                left_partner_id = False
+                right_partner_id = False
+                if 'left_partner_id' in vals:
+                    right_partner_id = vals['left_partner_id']
+                    del vals['left_partner_id']
+                if 'right_partner_id' in vals:
+                    left_partner_id = vals['right_partner_id']
+                    del vals['right_partner_id']
+                if left_partner_id:
+                    vals['left_partner_id'] = left_partner_id
+                if right_partner_id:
+                    vals['right_partner_id'] = right_partner_id
         return vals
 
     @api.multi

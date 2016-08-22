@@ -2,7 +2,6 @@
 # © 2013-2016 Therp BV <http://therp.nl>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 from openerp import _, api, exceptions, fields, models
-from openerp.osv.expression import TRUE_LEAF
 
 
 class ResPartnerRelation(models.Model):
@@ -153,67 +152,12 @@ class ResPartnerRelation(models.Model):
             ('right_partner_id', operator, value),
         ]
 
-    @api.multi
-    def _on_right_partner(self):
-        """Determine wether functions are called in a situation where the
-        active partner is the right partner. Default False!
-        """
-        return set(self.mapped('right_partner_id').ids) &\
-            set(self.env.context.get('active_ids', []))
-
-    @api.model
-    def get_type_from_selection_id(self, selection_type_id):
-        """Return tuple with type_id and reverse indication for
-        selection_type_id."""
-        selection_model = self.env['res.partner.relation.type.selection']
-        selection = selection_model.browse(selection_type_id)
-        return selection.get_type_from_selection_id()
-
-    @api.model
-    def _correct_vals(self, vals):
-        """Fill type and left and right partner id, according to whether
-        we have a normal relation type or an inverse relation type
-        """
-        vals = vals.copy()
-        if 'type_selection_id' not in vals:
-            return vals
-        type_id, is_reverse = self.get_type_from_selection_id(
-            vals['type_selection_id']
-        )
-        vals['type_id'] = type_id
-        # If adding through view with just left_partner_id
-        # and right_partner_id, we have to use those, and not look at
-        # other fields:
-        if 'left_partner_id' in vals or 'right_partner_id' in vals:
-            if is_reverse:
-                left_partner_id = False
-                right_partner_id = False
-                if 'left_partner_id' in vals:
-                    right_partner_id = vals['left_partner_id']
-                    del vals['left_partner_id']
-                if 'right_partner_id' in vals:
-                    left_partner_id = vals['right_partner_id']
-                    del vals['right_partner_id']
-                if left_partner_id:
-                    vals['left_partner_id'] = left_partner_id
-                if right_partner_id:
-                    vals['right_partner_id'] = right_partner_id
-            return vals
-        return vals
-
-    @api.multi
-    def write(self, vals):
-        """Override write to correct values, before being stored."""
-        vals = self._correct_vals(vals)
-        return super(ResPartnerRelation, self).write(vals)
-
     @api.model
     def create(self, vals):
         """Override create to correct values, before being stored."""
         context = self.env.context
         if 'left_partner_id' not in vals and context.get('active_id'):
             vals['left_partner_id'] = context.get('active_id')
-        vals = self._correct_vals(vals)
         return super(ResPartnerRelation, self).create(vals)
 
     @api.one
