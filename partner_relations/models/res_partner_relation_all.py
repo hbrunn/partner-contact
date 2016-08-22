@@ -328,13 +328,70 @@ CREATE OR REPLACE VIEW %(table)s AS
                     vals['right_partner_id'] = right_partner_id
         return vals
 
-    @api.model
-    def get_type_from_selection_id(self, selection_type_id):
-        """Return tuple with type_id and reverse indication for
-        selection_type_id."""
-        selection_model = self.env['res.partner.relation.type.selection']
-        selection = selection_model.browse(selection_type_id)
-        return selection.get_type_from_selection_id()
+        def check_type_selection_domain(type_selection_domain):
+            """Check wether type_selection_domain results in empty selection
+            for type_selection_id, or wrong selection if already selected.
+            """
+            warning = {}
+            if not type_selection_domain:
+                return warning
+            if self.type_selection_id:
+                test_domain = (
+                    [('id', '=', self.type_selection_id.id)] +
+                    type_selection_domain
+                )
+            else:
+                test_domain = type_selection_domain
+            type_model = self.env['res.partner.relation.type.selection']
+            types_found = type_model.search(test_domain, limit=1)
+            if not types_found:
+                if self.type_selection_id:
+                    message = _(
+                        'Relation type incompatible with selected partner(s).'
+                    )
+                else:
+                    message = _(
+                        'No relation type available for selected partners.'
+                    )
+                warning = {'title': _('Error!'), 'message': message}
+            return warning
+
+        type_selection_domain = []
+        if self.this_partner_id:
+            type_selection_domain += [
+                '|',
+                ('contact_type_this', '=', False),
+                ('contact_type_this', '=',
+                 self.this_partner_id.get_partner_type()
+                ),
+                '|',
+                ('partner_category_this', '=', False),
+                ('partner_category_this', 'in',
+                 self.this_partner_id.category_id.ids
+                ),
+            ]
+        if self.other_partner_id:
+            type_selection_domain += [
+                '|',
+                ('contact_type_other', '=', False),
+                ('contact_type_other', '=',
+                 self.other_partner_id.get_partner_type()
+                ),
+                '|',
+                ('partner_category_other', '=', False),
+                ('partner_category_other', 'in',
+                 self.other_partner_id.category_id.ids
+                ),
+            ]
+        result = {'domain': {
+            'type_selection_id': type_selection_domain,
+        }}
+        # Check wether domain results in no choice or wrong choice for
+        # type_selection_id:
+        warning = check_type_selection_domain(type_selection_domain)
+        if warning:
+            result['warning'] = warning
+        return result
 
     @api.model
     def _correct_vals(self, vals):
@@ -348,13 +405,14 @@ CREATE OR REPLACE VIEW %(table)s AS
             del vals['other_partner_id']
         if 'type_selection_id' not in vals:
             return vals
-        type_id, is_reverse = self.get_type_from_selection_id(
-            vals['type_selection_id']
-        )
+        selection = self.type_selection_id.browse(vals['type_selection_id'])
+        type_id = selection.type_id.id
+        is_inverse = selection.is_inverse
         vals['type_id'] = type_id
+        del vals['type_selection_id']
         # Need to switch right and left partner if we are in reverse id:
         if 'left_partner_id' in vals or 'right_partner_id' in vals:
-            if is_reverse:
+            if is_inverse:
                 left_partner_id = False
                 right_partner_id = False
                 if 'left_partner_id' in vals:
