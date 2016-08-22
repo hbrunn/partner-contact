@@ -2,19 +2,6 @@
 <openerp>
     <data>
 
-        <record id="form_res_partner_relation" model="ir.ui.view">
-            <field name="model">res.partner.relation</field>
-            <field type="xml" name="arch">
-                <form string="Partner Relation">
-                    <sheet>
-                        <field name="left_partner_id" />
-                        <field name="type_id" />
-                        <field name="right_partner_id" />
-                    </sheet>
-                </form>
-            </field>
-        </record>
-
         <record id="tree_res_partner_relation" model="ir.ui.view">
             <field name="model">res.partner.relation</field>
             <field name="arch" type="xml">
@@ -28,7 +15,7 @@
                         options="{'no_create': True}"
                         />
                     <field
-                        name="type_selection_id"
+                        name="type_id"
                         required="True"
                         options="{'no_create': True}"
                         />

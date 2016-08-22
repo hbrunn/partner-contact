@@ -5,9 +5,6 @@ from openerp import _, api, exceptions, fields, models
 from openerp.osv.expression import TRUE_LEAF
 
 
-PADDING = 10
-
-
 class ResPartnerRelation(models.Model):
     """Model res.partner.relation is used to describe all links or relations
     between partners in the database.
@@ -22,14 +19,8 @@ class ResPartnerRelation(models.Model):
     """
     _name = 'res.partner.relation'
     _description = 'Partner relation'
-    _order = 'active desc, date_start desc, date_end desc'
+    _order = 'left_partner_id, active desc, date_start desc, date_end desc'
 
-    type_selection_id = fields.Many2one(
-        comodel_name='res.partner.relation.type.selection',
-        compute='_compute_fields',
-        inverse=lambda *args: None,
-        string='Type',
-    )
     allow_self = fields.Boolean(related='type_id.allow_self')
     any_partner_id = fields.Many2many(
         comodel_name='res.partner',
@@ -61,21 +52,12 @@ class ResPartnerRelation(models.Model):
     date_end = fields.Date('Ending date')
     active = fields.Boolean('Active', default=True)
 
-    @api.multi
-    def _compute_fields(self):
-        for this in self:
-            on_right_partner = this._on_right_partner()
-            this.type_selection_id = self\
-                .env['res.partner.relation.type.selection']\
-                .browse(this.type_id.id * PADDING +
-                        (on_right_partner and 1 or 0))
-
     @api.onchange(
         'left_partner_id',
         'right_partner_id',
-        'type_selection_id',
+        'type_id',
     )
-    def _onchange_type_selection_or_partner(self):
+    def _onchange_type_or_partner(self):
         """Set domain on input fields depending on value of other fields.
 
         Selecting a left or right partner, or a relation type will limit the
@@ -83,91 +65,79 @@ class ResPartnerRelation(models.Model):
         """
         left_partner_domain = []
         right_partner_domain = []
-        type_selection_domain = []
-        type_id, is_reverse = self.type_selection_id\
-            .get_type_from_selection_id()
-        relation_type = self.env['res.partner.relation.type'].browse(type_id)
+        type_domain = []
         # Build left and right partner domains from type_id
-        if relation_type:
-            if relation_type.contact_type_left:
-                check_contact_type = relation_type.contact_type_left
+        if self.type_id:
+            if self.type_id.contact_type_left:
+                check_contact_type = self.type_id.contact_type_left
                 if check_contact_type == 'c':
                     left_partner_domain.append(('is_company', '=', True))
                 if check_contact_type == 'p':
                     left_partner_domain.append(('is_company', '=', False))
-            if relation_type.partner_category_left:
-                check_partner_category = relation_type.partner_category_left
+            if self.type_id.partner_category_left:
+                check_partner_category = self.type_id.partner_category_left
                 left_partner_domain.append(
                     ('category_id', 'child_of', check_partner_category.ids)
                 )
-            if relation_type.contact_type_right:
-                check_contact_type = relation_type.contact_type_right
+            if self.type_id.contact_type_right:
+                check_contact_type = self.type_id.contact_type_right
                 if check_contact_type == 'c':
                     right_partner_domain.append(('is_company', '=', True))
                 if check_contact_type == 'p':
                     right_partner_domain.append(('is_company', '=', False))
-            if relation_type.partner_category_right:
-                check_partner_category = relation_type.partner_category_right
+            if self.type_id.partner_category_right:
+                check_partner_category = self.type_id.partner_category_right
                 right_partner_domain.append(
                     ('category_id', 'child_of', check_partner_category.ids)
                 )
         # Build selection domain from partner info
-        if is_reverse:
-            left_partner_id = self.right_partner_id
-            right_partner_id = self.left_partner_id
-        else:
-            left_partner_id = self.left_partner_id
-            right_partner_id = self.right_partner_id
-        if left_partner_id:
-            if left_partner_id.is_company:
-                type_selection_domain += [
+        if self.left_partner_id:
+            if self.left_partner_id.is_company:
+                type_domain += [
                     '|',
-                    ('type_id.contact_type_left', '=', False),
-                    ('type_id.contact_type_left', '=', 'c')
+                    ('contact_type_left', '=', False),
+                    ('contact_type_left', '=', 'c')
                 ]
             else:
-                type_selection_domain += [
+                type_domain += [
                     '|',
-                    ('type_id.contact_type_left', '=', False),
-                    ('type_id.contact_type_left', '=', 'p')
+                    ('contact_type_left', '=', False),
+                    ('contact_type_left', '=', 'p')
                 ]
-            type_selection_domain += [
+            type_domain += [
                 '|',
-                ('type_id.partner_category_left', '=', False),
-                ('type_id.partner_category_left',
+                ('partner_category_left', '=', False),
+                ('partner_category_left',
                  'in',
-                 left_partner_id.category_id.ids
+                 self.left_partner_id.category_id.ids
                 )
             ]
-        if right_partner_id:
-            if right_partner_id.is_company:
-                type_selection_domain += [
+        if self.right_partner_id:
+            if self.right_partner_id.is_company:
+                type_domain += [
                     '|',
-                    ('type_id.contact_type_right', '=', False),
-                    ('type_id.contact_type_right', '=', 'c')
+                    ('contact_type_right', '=', False),
+                    ('contact_type_right', '=', 'c')
                 ]
             else:
-                type_selection_domain += [
+                type_domain += [
                     '|',
-                    ('type_id.contact_type_right', '=', False),
-                    ('type_id.contact_type_right', '=', 'p')
+                    ('contact_type_right', '=', False),
+                    ('contact_type_right', '=', 'p')
                 ]
-            type_selection_domain += [
+            type_domain += [
                 '|',
-                ('type_id.partner_category_right', '=', False),
-                ('type_id.partner_category_right',
+                ('partner_category_right', '=', False),
+                ('partner_category_right',
                  'in',
-                 right_partner_id.category_id.ids
+                 self.right_partner_id.category_id.ids
                 )
             ]
-        domain = {}
-        if is_reverse:
-            domain['left_partner_id'] = right_partner_domain
-            domain['right_partner_id'] = left_partner_domain
-        else:
-            domain['left_partner_id'] = left_partner_domain
-            domain['right_partner_id'] = right_partner_domain
-        domain['type_selection_id'] = type_selection_domain
+        domain = {
+            'left_partner_id': left_partner_domain,
+            'right_partner_id': right_partner_domain,
+            'type_id': type_domain,
+        }
         return {'domain': domain}
 
     @api.one
