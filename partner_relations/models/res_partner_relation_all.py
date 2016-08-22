@@ -65,12 +65,6 @@ class ResPartnerRelationAll(models.AbstractModel):
         string='Record Type',
         readonly=True,
     )
-    contact_type = fields.Selection(
-        selection=lambda self: self.env['res.partner.relation.type']\
-            ._get_partner_types(),
-        string='Partner Type',
-        default=lambda self: self._get_default_contact_type()
-    )
     date_start = fields.Date('Starting date')
     date_end = fields.Date('Ending date')
     active = fields.Boolean('Active', default=True)
@@ -123,14 +117,6 @@ class ResPartnerRelationAll(models.AbstractModel):
         """Get the record on which this record is overlaid"""
         return self.env[self._overlays].browse(
             i / PADDING for i in self.ids)
-
-    @api.multi
-    def _get_default_contact_type(self):
-        partner_id = self._context.get('default_this_partner_id')
-        if partner_id:
-            partner = self.env['res.partner'].browse(partner_id)
-            return partner.get_partner_type()
-        return False
 
     @api.multi
     def name_get(self):
