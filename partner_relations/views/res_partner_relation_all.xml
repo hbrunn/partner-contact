@@ -12,7 +12,8 @@
                     >
                     <field
                         name="this_partner_id"
-                        invisible="1"
+                        required="True"
+                        options="{'no_create': True}"
                         />
                     <field
                         name="type_selection_id"
@@ -33,32 +34,23 @@
             </field>
         </record>
 
-        <record id="form_res_partner_relation_all" model="ir.ui.view">
-            <field name="model">res.partner.relation.all</field>
-            <field name="arch" type="xml">
-                <form string="Partner relation">
-                    <group>
-                        <field name="this_partner_id" />
-                        <field name="type_selection_id" />
-                        <field name="other_partner_id" />
-                    </group>
-                    <group>
-                        <field name="date_start" />
-                        <field name="date_end" />
-                        <field name="active" />
-                    </group>
-                </form>
-            </field>
-        </record>
-
         <record id="search_res_partner_relation_all" model="ir.ui.view">
             <field name="model">res.partner.relation.all</field>
             <field name="arch" type="xml">
                 <search string="Search Relations">
+                    <field name="any_partner_id" widget="many2one"/>
                     <field name="this_partner_id"/>
                     <field name="other_partner_id"/>
                     <field name="type_id"/>
                     <field name="active"/>
+                    <filter
+                        string="Left to right"
+                        domain="[('record_type', '=', 'a')]"
+                        />
+                    <filter
+                        string="Right to left"
+                        domain="[('record_type', '=', 'b')]"
+                        />
                     <group expand="0" string="Group By">
                         <filter
                             string="Other Partner"

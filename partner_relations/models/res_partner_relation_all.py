@@ -6,11 +6,12 @@ from psycopg2.extensions import AsIs
 from openerp import api, fields, models
 from openerp.tools import drop_view_if_exists
 
-from .res_partner_relation_type_selection import\
-    ResPartnerRelationTypeSelection
-
 
 PADDING = 10
+_RECORD_TYPES = [
+    ('a', 'Left partner to right partner'),
+    ('b', 'Right partner to left partner'),
+]
 
 
 class ResPartnerRelationAll(models.AbstractModel):
@@ -18,6 +19,7 @@ class ResPartnerRelationAll(models.AbstractModel):
     _log_access = False
     _name = 'res.partner.relation.all'
     _description = 'All (non-inverse + inverse) relations between partners'
+    _order = 'this_partner_id, type_id, active desc, date_start desc'
 
     _overlays = 'res.partner.relation'
 
@@ -35,6 +37,12 @@ class ResPartnerRelationAll(models.AbstractModel):
     my_field = fields...
     """
 
+    any_partner_id = fields.Many2many(
+        comodel_name='res.partner',
+        string='Partner',
+        compute='_compute_any_partner_id',
+        search='_search_any_partner_id'
+    )
     this_partner_id = fields.Many2one(
         comodel_name='res.partner',
         string='Current Partner',
@@ -61,7 +69,7 @@ class ResPartnerRelationAll(models.AbstractModel):
         readonly=True,
     )
     record_type = fields.Selection(
-        selection=ResPartnerRelationTypeSelection._RECORD_TYPES,
+        selection=_RECORD_TYPES,
         string='Record Type',
         readonly=True,
     )
@@ -111,6 +119,19 @@ class ResPartnerRelationAll(models.AbstractModel):
         )
         return super(ResPartnerRelationAll, self)._auto_init(
             cr, context=context)
+
+    @api.depends('this_partner_id', 'other_partner_id')
+    def _compute_any_partner_id(self):
+        for rec in self:
+            rec.any_partner_id = rec.this_partner_id + rec.other_partner_id
+
+    @api.model
+    def _search_any_partner_id(self, operator, value):
+        return [
+            '|',
+            ('this_partner_id', operator, value),
+            ('other_partner_id', operator, value),
+        ]
 
     @api.multi
     def _get_underlying_object(self):
@@ -179,6 +200,9 @@ class ResPartnerRelationAll(models.AbstractModel):
     def _correct_vals(self, vals):
         """Fill left and right partner from this and other partner."""
         vals = vals.copy()
+        for key in vals.keys():
+            if self._fields[key].readonly:
+                del vals[key]
         if 'this_partner_id' in vals:
             vals['left_partner_id'] = vals['this_partner_id']
             del vals['this_partner_id']
@@ -211,32 +235,21 @@ class ResPartnerRelationAll(models.AbstractModel):
     @api.multi
     def write(self, vals):
         """divert non-problematic writes to underlying table"""
-        underlying_objs = self._get_underlying_object()
-        vals = {
-            key: val
-            for key, val in vals.iteritems()
-            if not self._fields[key].readonly
-        }
         vals = self._correct_vals(vals)
+        underlying_objs = self._get_underlying_object()
         return underlying_objs.write(vals)
 
     @api.model
     def create(self, vals):
-        """divert non-problematic creates to underlying table
+        """Divert non-problematic creates to underlying table.
 
-        Create a res.partner.relation but return the converted id
+        Create a res.partner.relation but return the converted id.
         """
         is_reverse = False
         if 'type_selection_id' in vals:
-            relation_model = self.env['res.partner.relation']
-            type_id, is_reverse = relation_model.get_type_from_selection_id(
+            type_id, is_reverse = self.get_type_from_selection_id(
                 vals['type_selection_id']
             )
-        vals = {
-            key: val
-            for key, val in vals.iteritems()
-            if not self._fields[key].readonly
-        }
         vals = self._correct_vals(vals)
         res = self.env[self._overlays].create(vals)
         return_id = res.id * PADDING + (is_reverse and 1 or 0)
