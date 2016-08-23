@@ -124,28 +124,6 @@ class TestPartnerRelation(common.TransactionCase):
         self.assertTrue(self.partner_1 in partners)
         self.assertTrue(self.partner_2 in partners)
 
-    def test_ui_functions(self):
-        relation = self.relation_model.create({
-            'type_id': self.relation_mixed.id,
-            'left_partner_id': self.partner_2.id,
-            'right_partner_id': self.partner_1.id,
-        })
-        self.assertEqual(relation.type_selection_id.type_id, relation.type_id)
-        relation = relation.with_context(
-            active_id=self.partner_1.id,
-            active_ids=self.partner_1.ids,
-            active_model='res.partner.relation',
-        )
-        relation.read()
-        domain = relation._onchange_type_selection_id()['domain']
-        # TODO: HAs to be rewritten: 
-        self.assertTrue(
-            ('is_company', '=', True) in domain['left_partner_id']
-        )
-        relation.write({
-            'type_selection_id': relation.type_selection_id.id,
-        })
-
     def test_relation_all(self):
         relation_all_record = self.env['res.partner.relation.all']\
             .with_context(

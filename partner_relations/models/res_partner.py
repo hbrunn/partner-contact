@@ -17,12 +17,6 @@ class ResPartner(models.Model):
         string='Relation Count',
         compute="_compute_relation_count"
     )
-    relation_ids = fields.One2many(
-        comodel_name='res.partner.relation',
-        string='Relations',
-        compute='_compute_relation_ids',
-        selectable=False,
-    )
     relation_all_ids = fields.One2many(
         comodel_name='res.partner.relation.all',
         inverse_name='this_partner_id',
@@ -56,30 +50,15 @@ class ResPartner(models.Model):
     )
 
     @api.one
-    @api.depends("relation_ids")
+    @api.depends("relation_all_ids")
     def _compute_relation_count(self):
         """Count the number of relations this partner has for Smart Button
 
         Don't count inactive relations.
         """
-        self.relation_count = len(self.relation_ids.filtered('active'))
-
-    @api.multi
-    def _compute_relation_ids(self):
-        """getter for relation_ids"""
-        self.env.cr.execute(
-            "select p.id, array_agg(r.id) "
-            "from res_partner p join res_partner_relation r "
-            "on r.left_partner_id=p.id or r.right_partner_id=p.id "
-            "where p.id in %s "
-            "group by p.id",
-            (tuple(self.ids),)
+        self.relation_count = (
+            len(self.relation_all_ids.filtered('active')) / 2
         )
-        partner2relation = dict(self.env.cr.fetchall())
-        for this in self:
-            this.relation_ids += self.env['res.partner.relation'].browse(
-                partner2relation.get(this.id, []),
-            )
 
     @api.model
     def _search_relation_id(self, operator, value):

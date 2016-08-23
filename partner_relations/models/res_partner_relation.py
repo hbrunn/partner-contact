@@ -15,9 +15,7 @@ class ResPartnerRelation(models.Model):
     """
     _name = 'res.partner.relation'
     _description = 'Partner relation'
-    _order = 'left_partner_id, active desc, date_start desc, date_end desc'
 
-    allow_self = fields.Boolean(related='type_id.allow_self')
     left_partner_id = fields.Many2one(
         comodel_name='res.partner',
         string='Source Partner',
@@ -40,95 +38,6 @@ class ResPartnerRelation(models.Model):
     )
     date_start = fields.Date('Starting date')
     date_end = fields.Date('Ending date')
-    active = fields.Boolean('Active', default=True)
-
-    @api.onchange(
-        'left_partner_id',
-        'right_partner_id',
-        'type_id',
-    )
-    def _onchange_type_or_partner(self):
-        """Set domain on input fields depending on value of other fields.
-
-        Selecting a left or right partner, or a relation type will limit the
-        choices for the other fields.
-        """
-        left_partner_domain = []
-        right_partner_domain = []
-        type_domain = []
-        # Build left and right partner domains from type_id
-        if self.type_id:
-            if self.type_id.contact_type_left:
-                check_contact_type = self.type_id.contact_type_left
-                if check_contact_type == 'c':
-                    left_partner_domain.append(('is_company', '=', True))
-                if check_contact_type == 'p':
-                    left_partner_domain.append(('is_company', '=', False))
-            if self.type_id.partner_category_left:
-                check_partner_category = self.type_id.partner_category_left
-                left_partner_domain.append(
-                    ('category_id', 'child_of', check_partner_category.ids)
-                )
-            if self.type_id.contact_type_right:
-                check_contact_type = self.type_id.contact_type_right
-                if check_contact_type == 'c':
-                    right_partner_domain.append(('is_company', '=', True))
-                if check_contact_type == 'p':
-                    right_partner_domain.append(('is_company', '=', False))
-            if self.type_id.partner_category_right:
-                check_partner_category = self.type_id.partner_category_right
-                right_partner_domain.append(
-                    ('category_id', 'child_of', check_partner_category.ids)
-                )
-        # Build selection domain from partner info
-        if self.left_partner_id:
-            if self.left_partner_id.is_company:
-                type_domain += [
-                    '|',
-                    ('contact_type_left', '=', False),
-                    ('contact_type_left', '=', 'c')
-                ]
-            else:
-                type_domain += [
-                    '|',
-                    ('contact_type_left', '=', False),
-                    ('contact_type_left', '=', 'p')
-                ]
-            type_domain += [
-                '|',
-                ('partner_category_left', '=', False),
-                ('partner_category_left',
-                 'in',
-                 self.left_partner_id.category_id.ids
-                )
-            ]
-        if self.right_partner_id:
-            if self.right_partner_id.is_company:
-                type_domain += [
-                    '|',
-                    ('contact_type_right', '=', False),
-                    ('contact_type_right', '=', 'c')
-                ]
-            else:
-                type_domain += [
-                    '|',
-                    ('contact_type_right', '=', False),
-                    ('contact_type_right', '=', 'p')
-                ]
-            type_domain += [
-                '|',
-                ('partner_category_right', '=', False),
-                ('partner_category_right',
-                 'in',
-                 self.right_partner_id.category_id.ids
-                )
-            ]
-        domain = {
-            'left_partner_id': left_partner_domain,
-            'right_partner_id': right_partner_domain,
-            'type_id': type_domain,
-        }
-        return {'domain': domain}
 
     @api.model
     def create(self, vals):
@@ -193,24 +102,27 @@ class ResPartnerRelation(models.Model):
         :raises exceptions.Warning: When constraint is violated
         """
         if self.left_partner_id == self.right_partner_id:
-            if not self.allow_self:
+            if not (self.type_id and self.type_id.allow_self):
                 raise exceptions.Warning(
                     _('Partners cannot have a relation with themselves.')
                 )
 
     @api.one
-    @api.constrains('left_partner_id', 'right_partner_id', 'active')
+    @api.constrains(
+        'left_partner_id',
+        'type_id',
+        'right_partner_id',
+        'date_start',
+        'date_end',
+    )
     def _check_relation_uniqueness(self):
         """Forbid multiple active relations of the same type between the same
         partners
 
         :raises exceptions.Warning: When constraint is violated
         """
-        if not self.active:
-            return
         domain = [
             ('type_id', '=', self.type_id.id),
-            ('active', '=', True),
             ('id', '!=', self.id),
             ('left_partner_id', '=', self.left_partner_id.id),
             ('right_partner_id', '=', self.right_partner_id.id),

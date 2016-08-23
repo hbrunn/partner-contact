@@ -7,7 +7,6 @@ from openerp import _, api, fields, models
 from openerp.tools import drop_view_if_exists
 
 
-
 UNDERLYING_MODEL = 'res.partner.relation'
 PADDING = 10
 _RECORD_TYPES = [
@@ -21,7 +20,7 @@ class ResPartnerRelationAll(models.AbstractModel):
     _log_access = False
     _name = 'res.partner.relation.all'
     _description = 'All (non-inverse + inverse) relations between partners'
-    _order = 'this_partner_id, type_id, active desc, date_start desc'
+    _order = 'this_partner_id, type_selection_id, date_end desc, date_start desc'
 
     _additional_view_fields = []
     """append to this list if you added fields to res_partner_relation that
@@ -69,7 +68,10 @@ class ResPartnerRelationAll(models.AbstractModel):
     )
     date_start = fields.Date('Starting date')
     date_end = fields.Date('Ending date')
-    active = fields.Boolean('Active', default=True)
+    active = fields.Boolean(
+        string='Active',
+        help="Records with date_end in the past are inactive",
+    )
     any_partner_id = fields.Many2many(
         comodel_name='res.partner',
         string='Partner',
@@ -93,7 +95,7 @@ class ResPartnerRelationAll(models.AbstractModel):
                 right_partner_id as other_partner_id,
                 date_start,
                 date_end,
-                active,
+                (date_end is NULL OR date_end >= current_date) as active,
                 type_id * %(padding)s as type_selection_id
                 %(additional_view_fields)s
             from %(underlying_table)s
@@ -106,7 +108,7 @@ class ResPartnerRelationAll(models.AbstractModel):
                 left_partner_id,
                 date_start,
                 date_end,
-                active,
+                date_end is NULL OR date_end >= current_date,
                 type_id * %(padding)s + 1
                 %(additional_view_fields)s
             from %(underlying_table)s""",
