@@ -22,9 +22,7 @@
                         />
                     <field
                         name="other_partner_id"
-                        attrs="{
-                            'readonly': [('type_selection_id', '=', False)],
-                        }"
+                        required="True"
                         options="{'no_create': True}"
                         />
                     <field name="date_start" />

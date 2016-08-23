@@ -3,10 +3,12 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 from psycopg2.extensions import AsIs
 
-from openerp import api, fields, models
+from openerp import _, api, fields, models
 from openerp.tools import drop_view_if_exists
 
 
+
+UNDERLYING_MODEL = 'res.partner.relation'
 PADDING = 10
 _RECORD_TYPES = [
     ('a', 'Left partner to right partner'),
@@ -20,8 +22,6 @@ class ResPartnerRelationAll(models.AbstractModel):
     _name = 'res.partner.relation.all'
     _description = 'All (non-inverse + inverse) relations between partners'
     _order = 'this_partner_id, type_id, active desc, date_start desc'
-
-    _overlays = 'res.partner.relation'
 
     _additional_view_fields = []
     """append to this list if you added fields to res_partner_relation that
@@ -37,15 +37,9 @@ class ResPartnerRelationAll(models.AbstractModel):
     my_field = fields...
     """
 
-    any_partner_id = fields.Many2many(
-        comodel_name='res.partner',
-        string='Partner',
-        compute='_compute_any_partner_id',
-        search='_search_any_partner_id'
-    )
     this_partner_id = fields.Many2one(
         comodel_name='res.partner',
-        string='Current Partner',
+        string='One Partner',
         required=True,
     )
     other_partner_id = fields.Many2one(
@@ -76,6 +70,12 @@ class ResPartnerRelationAll(models.AbstractModel):
     date_start = fields.Date('Starting date')
     date_end = fields.Date('Ending date')
     active = fields.Boolean('Active', default=True)
+    any_partner_id = fields.Many2many(
+        comodel_name='res.partner',
+        string='Partner',
+        compute='_compute_any_partner_id',
+        search='_search_any_partner_id'
+    )
 
     def _auto_init(self, cr, context=None):
         drop_view_if_exists(cr, self._table)
@@ -136,7 +136,7 @@ class ResPartnerRelationAll(models.AbstractModel):
     @api.multi
     def _get_underlying_object(self):
         """Get the record on which this record is overlaid"""
-        return self.env[self._overlays].browse(
+        return self.env[UNDERLYING_MODEL].browse(
             i / PADDING for i in self.ids)
 
     @api.multi
@@ -152,41 +152,145 @@ class ResPartnerRelationAll(models.AbstractModel):
 
     @api.onchange('type_selection_id')
     def onchange_type_selection_id(self):
-        """Add domain on other_partner_id according to category_other and
-        contact_type_other"""
-        domain = []
-        if self.type_selection_id.contact_type_other:
-            domain.append(
-                ('is_company', '=',
-                 self.type_selection_id.contact_type_other == 'c'))
-        if self.type_selection_id.partner_category_other:
-            domain.append(
-                ('category_id', 'in',
-                 self.type_selection_id.partner_category_other.ids))
-        return {
-            'domain': {
-                'other_partner_id': domain,
-            }
-        }
+        """Add domain on partners according to category and contact_type."""
 
-    @api.onchange('this_partner_id')
-    def onchange_this_partner_id(self):
-        if not self.this_partner_id:
-            return {'domain': {'type_selection_id': []}}
-        return {
-            'domain': {
-                'type_selection_id': [
-                    '|',
-                    ('contact_type_this', '=', False),
-                    ('contact_type_this', '=',
-                     self.this_partner_id.get_partner_type()),
-                    '|',
-                    ('partner_category_this', '=', False),
-                    ('partner_category_this', 'in',
-                     self.this_partner_id.category_id.ids),
-                ],
-            },
-        }
+        def check_partner_domain(partner, partner_domain, side):
+            """Check wether partner_domain results in empty selection
+            for partner, or wrong selection of partner already selected.
+            """
+            warning = {}
+            if not partner_domain:
+                return warning
+            if partner:
+                test_domain = [('id', '=', partner.id)] + partner_domain
+            else:
+                test_domain = partner_domain
+            partner_model = self.env['res.partner']
+            partners_found = partner_model.search(test_domain)
+            if not partners_found:
+                if partner:
+                    message = _(
+                        '%s partner incompatible with relation type.' %
+                        side.title()
+                    )
+                else:
+                    message = _(
+                        'No %s partner available for relation type.' % side
+                    )
+                warning = {'title': _('Error!'), 'message': message}
+            return warning
+
+        this_partner_domain = []
+        other_partner_domain = []
+        if self.type_selection_id.contact_type_this:
+            this_partner_domain.append((
+                'is_company', '=',
+                 self.type_selection_id.contact_type_this == 'c'
+            ))
+        if self.type_selection_id.partner_category_this:
+            this_partner_domain.append((
+                'category_id', 'in',
+                 self.type_selection_id.partner_category_this.ids
+            ))
+        if self.type_selection_id.contact_type_other:
+            other_partner_domain.append((
+                'is_company', '=',
+                 self.type_selection_id.contact_type_other == 'c'
+            ))
+        if self.type_selection_id.partner_category_other:
+            other_partner_domain.append((
+                'category_id', 'in',
+                 self.type_selection_id.partner_category_other.ids
+            ))
+        result = {'domain': {
+            'this_partner_id': this_partner_domain,
+            'other_partner_id': other_partner_domain,
+        }}
+        # Check wether domain results in no choice or wrong choice of partners:
+        warning = check_partner_domain(
+            self.this_partner_id, this_partner_domain, _('this')
+        )
+        if warning:
+            result['warning'] = warning
+        else:
+            warning = check_partner_domain(
+                self.other_partner_id, other_partner_domain, _('other')
+            )
+            if warning:
+                result['warning'] = warning
+        return result
+
+    @api.onchange(
+        'this_partner_id',
+        'other_partner_id',
+    )
+    def onchange_partner_id(self):
+        """Set domain on type_selection_id based on partner(s) selected."""
+
+        def check_type_selection_domain(type_selection_domain):
+            """Check wether type_selection_domain results in empty selection
+            for type_selection_id, or wrong selection if already selected.
+            """
+            warning = {}
+            if not type_selection_domain:
+                return warning
+            if self.type_selection_id:
+                test_domain = (
+                    [('id', '=', self.type_selection_id.id)] +
+                    type_selection_domain
+                )
+            else:
+                test_domain = type_selection_domain
+            type_model = self.env['res.partner.relation.type.selection']
+            types_found = type_model.search(test_domain)
+            if not types_found:
+                if self.type_selection_id:
+                    message = _(
+                        'Relation type incompatible with selected partner(s).'
+                    )
+                else:
+                    message = _(
+                        'No relation type available for selected partners.'
+                    )
+                warning = {'title': _('Error!'), 'message': message}
+            return warning
+
+        type_selection_domain = []
+        if self.this_partner_id:
+            type_selection_domain += [
+                '|',
+                ('contact_type_this', '=', False),
+                ('contact_type_this', '=',
+                 self.this_partner_id.get_partner_type()
+                ),
+                '|',
+                ('partner_category_this', '=', False),
+                ('partner_category_this', 'in',
+                 self.this_partner_id.category_id.ids
+                ),
+            ]
+        if self.other_partner_id:
+            type_selection_domain += [
+                '|',
+                ('contact_type_other', '=', False),
+                ('contact_type_other', '=',
+                 self.other_partner_id.get_partner_type()
+                ),
+                '|',
+                ('partner_category_other', '=', False),
+                ('partner_category_other', 'in',
+                 self.other_partner_id.category_id.ids
+                ),
+            ]
+        result = {'domain': {
+            'type_selection_id': type_selection_domain,
+        }}
+        # Check wether domain results in no choice or wrong choice for
+        # type_selection_id:
+        warning = check_type_selection_domain(type_selection_domain)
+        if warning:
+            result['warning'] = warning
+        return result
 
     @api.model
     def get_type_from_selection_id(self, selection_type_id):
@@ -251,7 +355,7 @@ class ResPartnerRelationAll(models.AbstractModel):
                 vals['type_selection_id']
             )
         vals = self._correct_vals(vals)
-        res = self.env[self._overlays].create(vals)
+        res = self.env[UNDERLYING_MODEL].create(vals)
         return_id = res.id * PADDING + (is_reverse and 1 or 0)
         return self.browse(return_id)
 

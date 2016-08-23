@@ -2,13 +2,6 @@
 # © 2014-2016 Therp BV <http://therp.nl>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 """
-Created on 23 may 2014
-
-@author: Ronald Portier, Therp
-
-rportier@therp.nl
-http://www.therp.nl
-
 For the model defined here _auto is set to False to prevent creating a
 database file. All i/o operations are overridden to use a sql SELECT that
 takes data from res_partner_connection_type where each type is included in the
@@ -19,14 +12,6 @@ The original function _auto_init is still called because this function
 normally (if _auto == True) not only creates the db tables, but it also takes
 care of registering all fields in ir_model_fields. This is needed to make
 the field labels translatable.
-
-example content for last lines of _statement:
-select id, record_type,
-  customer_id, customer_name, customer_city, customer_zip, customer_street,
-  caller_id, caller_name, caller_phone, caller_fax, caller_email
-from FULL_LIST as ResPartnerRelationTypeSelection where record_type = 'c'
-ORDER BY ResPartnerRelationTypeSelection.customer_name asc,
-ResPartnerRelationTypeSelection.caller_name asc;
 """
 from psycopg2.extensions import AsIs
 
@@ -37,6 +22,10 @@ from .res_partner_relation_type import ResPartnerRelationType
 
 
 PADDING = 10
+_RECORD_TYPES = [
+    ('a', 'Type'),
+    ('b', 'Inverse type'),
+]
 
 
 class ResPartnerRelationTypeSelection(models.Model):
@@ -47,11 +36,6 @@ class ResPartnerRelationTypeSelection(models.Model):
     _foreign_keys = []
     _log_access = False
     _order = 'name asc'
-
-    _RECORD_TYPES = [
-        ('a', 'Type'),
-        ('b', 'Inverse type'),
-    ]
 
     record_type = fields.Selection(
         selection=_RECORD_TYPES,
@@ -114,6 +98,8 @@ class ResPartnerRelationTypeSelection(models.Model):
     @api.multi
     def name_get(self):
         """translate name using translations from res.partner.relation.type"""
+        # TODO: Can this not be done simply by taking name or inverse
+        #   name of underlying model??
         ir_translation = self.env['ir.translation']
         return [
             (
