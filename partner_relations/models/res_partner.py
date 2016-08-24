@@ -25,10 +25,10 @@ class ResPartner(models.Model):
         selectable=False,
         copy=False,
     )
-    search_relation_id = fields.Many2one(
+    search_relation_type_id = fields.Many2one(
         comodel_name='res.partner.relation.type.selection',
         compute=lambda self: None,
-        search='_search_relation_id',
+        search='_search_relation_type_id',
         string='Has relation of type',
     )
     search_relation_partner_id = fields.Many2one(
@@ -49,58 +49,49 @@ class ResPartner(models.Model):
         string='Has relation with a partner in category',
     )
 
-    @api.one
     @api.depends("relation_all_ids")
     def _compute_relation_count(self):
         """Count the number of relations this partner has for Smart Button
 
         Don't count inactive relations.
         """
-        self.relation_count = (
-            len(self.relation_all_ids.filtered('active')) / 2
-        )
+        for rec in self:
+            rec.relation_count = (
+                len(rec.relation_all_ids.filtered('active')) / 2
+            )
 
     @api.model
-    def _search_relation_id(self, operator, value):
+    def _search_relation_type_id(self, operator, value):
+        """Search partners based on their type of relations."""
         result = []
         if operator not in [
             '=', '!=', 'like', 'not like', 'ilike', 'not ilike', 'in', 'not in'
         ]:
             raise exceptions.ValidationError(
                 _('Unsupported search operator "%s"') % operator)
+        type_selection_model = self.env['res.partner.relation.type.selection']
         relation_type_selection = []
         if operator == '=' and isinstance(value, numbers.Integral):
-            relation_type_selection += self\
-                .env['res.partner.relation.type.selection']\
-                .browse(value)
+            relation_type_selection += type_selection_model.browse(value)
         elif operator == '!=' and isinstance(value, numbers.Integral):
-            relation_type_selection = self\
-                .env['res.partner.relation.type.selection']\
-                .search([
-                    ('id', operator, value),
-                ])
+            relation_type_selection = type_selection_model.search([
+                ('id', operator, value),
+            ])
         else:
-            relation_type_selection = self\
-                .env['res.partner.relation.type.selection']\
-                .search([
-                    ('type_id.name', operator, value),
-                ])
+            relation_type_selection = type_selection_model.search([
+                '|',
+                ('type_id.name', operator, value),
+                ('type_id.name_inverse', operator, value),
+            ])
         if not relation_type_selection:
             result = [FALSE_LEAF]
         for relation_type in relation_type_selection:
-            type_id, is_inverse = relation_type.get_type_from_selection_id()
             result = OR([
                 result,
                 [
-                    '&',
-                    ('relation_all_ids.type_id', '=', type_id),
-                    (
-                        'relation_all_ids.record_type', 'in',
-                        ['a', 'b']
-                        if relation_type.type_id.symmetric
-                        else
-                        (['b'] if is_inverse else ['a'])
-                    )
+                    ('relation_all_ids.type_selection_id.id', '=',
+                     relation_type.id
+                    ),
                 ],
             ])
         return result

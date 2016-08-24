@@ -97,7 +97,7 @@ msgid "Group By"
 msgstr ""
 
 #. module: partner_relations
-#: field:res.partner,search_relation_id:0
+#: field:res.partner,search_relation_type_id:0
 msgid "Has relation of type"
 msgstr ""
 

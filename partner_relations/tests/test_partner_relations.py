@@ -93,23 +93,23 @@ class TestPartnerRelation(common.TransactionCase):
             'right_partner_id': self.partner_1.id,
         })
         partners = self.env['res.partner'].search([
-            ('search_relation_id', '=', relation.type_selection_id.id)
+            ('search_relation_type_id', '=', relation.type_selection_id.id)
         ])
         self.assertTrue(self.partner_2 in partners)
 
         partners = self.env['res.partner'].search([
-            ('search_relation_id', '!=', relation.type_selection_id.id)
+            ('search_relation_type_id', '!=', relation.type_selection_id.id)
         ])
         self.assertTrue(self.partner_1 in partners)
 
         partners = self.env['res.partner'].search([
-            ('search_relation_id', '=', self.relation_mixed.name)
+            ('search_relation_type_id', '=', self.relation_mixed.name)
         ])
         self.assertTrue(self.partner_1 in partners)
         self.assertTrue(self.partner_2 in partners)
 
         partners = self.env['res.partner'].search([
-            ('search_relation_id', '=', 'unknown relation')
+            ('search_relation_type_id', '=', 'unknown relation')
         ])
         self.assertFalse(partners)
 
@@ -162,7 +162,7 @@ class TestPartnerRelation(common.TransactionCase):
             'right_partner_id': self.partner_1.id,
         })
         partners = self.env['res.partner'].search([
-            ('search_relation_id', '=', relation.type_selection_id.id)
+            ('search_relation_type_id', '=', relation.type_selection_id.id)
         ])
         self.assertTrue(self.partner_1 in partners)
         self.assertTrue(self.partner_2 in partners)

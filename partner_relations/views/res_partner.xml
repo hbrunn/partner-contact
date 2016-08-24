@@ -10,7 +10,7 @@
                 <data>
                     <field name="parent_id" position="after">
                         <field name="search_relation_partner_id" />
-                        <field name="search_relation_id" />
+                        <field name="search_relation_type_id" />
                         <field name="search_relation_date" />
                         <field name="search_relation_partner_category_id" />
                     </field>
