@@ -93,22 +93,11 @@ class ResPartnerRelationTypeSelection(models.Model):
 
     @api.multi
     def name_get(self):
-        """translate name using translations from res.partner.relation.type"""
-        # TODO: Can this not be done simply by taking name or inverse
-        #   name of underlying model??
-        ir_translation = self.env['ir.translation']
+        """Get name or inverse_name from underlying model."""
         return [
-            (
-                this.id,
-                ir_translation._get_source(
-                    'res.partner.relation.type,name_inverse'
-                    if this.is_inverse
-                    else 'res.partner.relation.type,name',
-                    ('model',),
-                    self.env.context.get('lang'),
-                    this.name,
-                    this.type_id.id
-                )
+            (this.id,
+             this.is_inverse and this.type_id.inverse_name or
+             this.type_id.display_name
             )
             for this in self
         ]
