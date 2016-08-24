@@ -46,11 +46,6 @@ class ResPartnerRelationAll(models.AbstractModel):
         string='Other Partner',
         required=True,
     )
-    type_id = fields.Many2one(
-        comodel_name='res.partner.relation.type',
-        string='Relation Type',
-        required=True,
-    )
     type_selection_id = fields.Many2one(
         comodel_name='res.partner.relation.type.selection',
         string='Relation Type',
@@ -89,7 +84,6 @@ class ResPartnerRelationAll(models.AbstractModel):
             select
                 id * %(padding)s as id,
                 id as relation_id,
-                type_id,
                 cast('a' as char(1)) as record_type,
                 left_partner_id as this_partner_id,
                 right_partner_id as other_partner_id,
@@ -102,7 +96,6 @@ class ResPartnerRelationAll(models.AbstractModel):
             union select
                 id * %(padding)s + 1,
                 id,
-                type_id,
                 cast('b' as char(1)),
                 right_partner_id,
                 left_partner_id,
@@ -168,7 +161,7 @@ class ResPartnerRelationAll(models.AbstractModel):
             else:
                 test_domain = partner_domain
             partner_model = self.env['res.partner']
-            partners_found = partner_model.search(test_domain)
+            partners_found = partner_model.search(test_domain, limit=1)
             if not partners_found:
                 if partner:
                     message = _(
@@ -244,7 +237,7 @@ class ResPartnerRelationAll(models.AbstractModel):
             else:
                 test_domain = type_selection_domain
             type_model = self.env['res.partner.relation.type.selection']
-            types_found = type_model.search(test_domain)
+            types_found = type_model.search(test_domain, limit=1)
             if not types_found:
                 if self.type_selection_id:
                     message = _(
@@ -295,14 +288,6 @@ class ResPartnerRelationAll(models.AbstractModel):
         return result
 
     @api.model
-    def get_type_from_selection_id(self, selection_type_id):
-        """Return tuple with type_id and reverse indication for
-        selection_type_id."""
-        selection_model = self.env['res.partner.relation.type.selection']
-        selection = selection_model.browse(selection_type_id)
-        return selection.get_type_from_selection_id()
-
-    @api.model
     def _correct_vals(self, vals):
         """Fill left and right partner from this and other partner."""
         vals = vals.copy()
@@ -317,13 +302,13 @@ class ResPartnerRelationAll(models.AbstractModel):
             del vals['other_partner_id']
         if 'type_selection_id' not in vals:
             return vals
-        type_id, is_reverse = self.get_type_from_selection_id(
-            vals['type_selection_id']
-        )
+        selection = self.type_selection_id.browse(vals['type_selection_id'])
+        type_id = selection.type_id.id
+        is_inverse = selection.is_inverse
         vals['type_id'] = type_id
         # Need to switch right and left partner if we are in reverse id:
         if 'left_partner_id' in vals or 'right_partner_id' in vals:
-            if is_reverse:
+            if is_inverse:
                 left_partner_id = False
                 right_partner_id = False
                 if 'left_partner_id' in vals:
@@ -351,14 +336,15 @@ class ResPartnerRelationAll(models.AbstractModel):
 
         Create a res.partner.relation but return the converted id.
         """
-        is_reverse = False
+        is_inverse = False
         if 'type_selection_id' in vals:
-            type_id, is_reverse = self.get_type_from_selection_id(
+            selection = self.type_selection_id.browse(
                 vals['type_selection_id']
             )
+            is_inverse = selection.is_inverse
         vals = self._correct_vals(vals)
         res = self.env[UNDERLYING_MODEL].create(vals)
-        return_id = res.id * PADDING + (is_reverse and 1 or 0)
+        return_id = res.id * PADDING + (is_inverse and 1 or 0)
         return self.browse(return_id)
 
     @api.multi

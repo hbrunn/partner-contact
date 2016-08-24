@@ -22,10 +22,6 @@ from .res_partner_relation_type import ResPartnerRelationType
 
 
 PADDING = 10
-_RECORD_TYPES = [
-    ('a', 'Type'),
-    ('b', 'Inverse type'),
-]
 
 
 class ResPartnerRelationTypeSelection(models.Model):
@@ -37,10 +33,6 @@ class ResPartnerRelationTypeSelection(models.Model):
     _log_access = False
     _order = 'name asc'
 
-    record_type = fields.Selection(
-        selection=_RECORD_TYPES,
-        string='Record type',
-    )
     type_id = fields.Many2one(
         comodel_name='res.partner.relation.type',
         string='Type',
@@ -49,6 +41,10 @@ class ResPartnerRelationTypeSelection(models.Model):
     contact_type_this = fields.Selection(
         selection=ResPartnerRelationType._get_partner_types.im_func,
         string='Current record\'s partner type',
+    )
+    is_inverse = fields.Boolean(
+        string="Is reverse type?",
+        help="Inverse relations are from right to left partner.",
     )
     contact_type_other = fields.Selection(
         selection=ResPartnerRelationType._get_partner_types.im_func,
@@ -66,27 +62,27 @@ class ResPartnerRelationTypeSelection(models.Model):
     def _auto_init(self, cr, context=None):
         drop_view_if_exists(cr, self._table)
         cr.execute(
-            """create or replace view %(table)s as
-            select
-                id * %(padding)s as id,
-                id as type_id,
-                cast('a' as char(1)) as record_type,
-                name as name,
-                contact_type_left as contact_type_this,
-                contact_type_right as contact_type_other,
-                partner_category_left as partner_category_this,
-                partner_category_right as partner_category_other
-            from %(underlying_table)s
-            union select
+            """CREATE OR REPLACE VIEW %(table)s AS
+            SELECT
+                id * %(padding)s AS id,
+                id AS type_id,
+                name AS name,
+                False AS is_inverse,
+                contact_type_left AS contact_type_this,
+                contact_type_right AS contact_type_other,
+                partner_category_left AS partner_category_this,
+                partner_category_right AS partner_category_other
+            FROM %(underlying_table)s
+            UNION SELECT
                 id * %(padding)s + 1,
                 id,
-                cast('b' as char(1)),
                 name_inverse,
+                True,
                 contact_type_right,
                 contact_type_left,
                 partner_category_right,
                 partner_category_left
-             from %(underlying_table)s""",
+             FROM %(underlying_table)s""",
             {
                 'table': AsIs(self._table),
                 'padding': PADDING,
@@ -106,7 +102,7 @@ class ResPartnerRelationTypeSelection(models.Model):
                 this.id,
                 ir_translation._get_source(
                     'res.partner.relation.type,name_inverse'
-                    if this.get_type_from_selection_id()[1]
+                    if this.is_inverse
                     else 'res.partner.relation.type,name',
                     ('model',),
                     self.env.context.get('lang'),
@@ -138,12 +134,3 @@ class ResPartnerRelationTypeSelection(models.Model):
             ] + (args or []),
             limit=limit
         ).name_get()
-
-    @api.multi
-    def get_type_from_selection_id(self):
-        """Selection id is computed from id of underlying type and the
-        kind of record. This function does the inverse computation to give
-        back the original type id, and about the record type."""
-        type_id = self.id / PADDING
-        is_reverse = (self.id % PADDING) > 0
-        return type_id, is_reverse
