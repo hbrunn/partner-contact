@@ -56,9 +56,7 @@ class ResPartner(models.Model):
         Don't count inactive relations.
         """
         for rec in self:
-            rec.relation_count = (
-                len(rec.relation_all_ids.filtered('active')) / 2
-            )
+            rec.relation_count = len(rec.relation_all_ids.filtered('active'))
 
     @api.model
     def _search_relation_type_id(self, operator, value):
