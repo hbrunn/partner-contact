@@ -3,8 +3,8 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 """
 For the model defined here _auto is set to False to prevent creating a
-database file. All i/o operations are overridden to use a sql SELECT that
-takes data from res_partner_connection_type where each type is included in the
+database file. The model is based on a SQL view based on
+res_partner_relation_type where each type is included in the
 result set twice, so it appears that the connection type and the inverse
 type are separate records..
 
@@ -93,10 +93,10 @@ class ResPartnerRelationTypeSelection(models.Model):
 
     @api.multi
     def name_get(self):
-        """Get name or inverse_name from underlying model."""
+        """Get name or name_inverse from underlying model."""
         return [
             (this.id,
-             this.is_inverse and this.type_id.inverse_name or
+             this.is_inverse and this.type_id.name_inverse or
              this.type_id.display_name
             )
             for this in self
@@ -104,22 +104,12 @@ class ResPartnerRelationTypeSelection(models.Model):
 
     @api.model
     def name_search(self, name='', args=None, operator='ilike', limit=100):
-        """search for translated names in res.partner.relation.type"""
-        res_partner_relation_type = self.env['res.partner.relation.type']
-        relations = res_partner_relation_type.search([
-            ('name', operator, name)
-        ])
-        inverse_relations = res_partner_relation_type.search([
-            ('name_inverse', operator, name),
-            ('symmetric', '=', False),
-        ])
+        """Search for name or inverse name in underlying model."""
         return self.search(
             [
-                (
-                    'id', 'in',
-                    map(lambda x: x * PADDING, relations.ids) +
-                    map(lambda x: x * PADDING + 1, inverse_relations.ids)
-                ),
+                '|',
+                ('type_id.name', operator, name),
+                ('type_id.name_inverse', operator, name),
             ] + (args or []),
             limit=limit
         ).name_get()
