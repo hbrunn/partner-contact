@@ -11,6 +11,8 @@ class ResPartner(models.Model):
     """Extend partner with relations and allow to search for relations
     in various ways.
     """
+    # pylint: disable=invalid-name
+    # pylint: disable=no-member
     _inherit = 'res.partner'
 
     relation_count = fields.Integer(
@@ -62,9 +64,17 @@ class ResPartner(models.Model):
     def _search_relation_type_id(self, operator, value):
         """Search partners based on their type of relations."""
         result = []
-        if operator not in [
-            '=', '!=', 'like', 'not like', 'ilike', 'not ilike', 'in', 'not in'
-        ]:
+        SUPPORTED_OPERATORS = (
+            '=',
+            '!=',
+            'like',
+            'not like',
+            'ilike',
+            'not ilike',
+            'in',
+            'not in',
+        )
+        if operator not in SUPPORTED_OPERATORS:
             raise exceptions.ValidationError(
                 _('Unsupported search operator "%s"') % operator)
         type_selection_model = self.env['res.partner.relation.type.selection']
@@ -96,12 +106,16 @@ class ResPartner(models.Model):
 
     @api.model
     def _search_related_partner_id(self, operator, value):
+        """Find partner based on relation with other partner."""
+        # pylint: disable=no-self-use
         return [
             ('relation_all_ids.other_partner_id', operator, value),
         ]
 
     @api.model
     def _search_relation_date(self, operator, value):
+        """Look only for relations valid at date of search."""
+        # pylint: disable=no-self-use
         if operator != '=':
             raise exceptions.ValidationError(
                 _('Unsupported search operator "%s"') % operator)
@@ -145,27 +159,6 @@ class ResPartner(models.Model):
         return super(ResPartner, self).search(
             args + date_args + active_args, offset=offset, limit=limit,
             order=order, count=count)
-
-    @api.multi
-    def read(self, fields=None, load='_classic_read'):
-        return super(ResPartner, self.with_partner_relations_context())\
-            .read(fields=fields, load=load)
-
-    @api.multi
-    def write(self, vals):
-        return super(ResPartner, self.with_partner_relations_context())\
-            .write(vals)
-
-    @api.multi
-    def with_partner_relations_context(self):
-        context = dict(self.env.context)
-        if context.get('active_model', self._name) == self._name:
-            existing = self.exists()
-            context.setdefault(
-                'active_id', existing.ids[0] if existing.ids else None)
-            context.setdefault('active_ids', existing.ids)
-            context.setdefault('active_model', self._name)
-        return self.with_context(context)
 
     @api.multi
     def get_partner_type(self):
