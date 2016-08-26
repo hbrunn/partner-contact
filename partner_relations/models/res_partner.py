@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # © 2013-2016 Therp BV <http://therp.nl>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+"""Support connections between partners."""
 import numbers
 
 from openerp import _, api, exceptions, fields, models
@@ -131,14 +132,19 @@ class ResPartner(models.Model):
 
     @api.model
     def _search_related_partner_category_id(self, operator, value):
+        """Search for partner related to a partner with search category."""
+        # pylint: disable=no-self-use
         return [
             ('relation_all_ids.other_partner_id.category_id', operator, value),
         ]
 
     @api.model
     def search(self, args, offset=0, limit=None, order=None, count=False):
-        # inject searching for current relation date if we search for relation
-        # properties and no explicit date was given
+        """Inject searching for current relation date if we search for
+        relation properties and no explicit date was given.
+        """
+        # pylint: disable=arguments-differ
+        # pylint: disable=no-value-for-parameter
         date_args = []
         for arg in args:
             if is_leaf(arg) and arg[0].startswith('search_relation'):

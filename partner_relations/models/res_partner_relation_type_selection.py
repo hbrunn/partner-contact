@@ -39,7 +39,7 @@ class ResPartnerRelationTypeSelection(models.Model):
     )
     name = fields.Char('Name')
     contact_type_this = fields.Selection(
-        selection=ResPartnerRelationType._get_partner_types.im_func,
+        selection=ResPartnerRelationType.get_partner_types.im_func,
         string='Current record\'s partner type',
     )
     is_inverse = fields.Boolean(
@@ -47,7 +47,7 @@ class ResPartnerRelationTypeSelection(models.Model):
         help="Inverse relations are from right to left partner.",
     )
     contact_type_other = fields.Selection(
-        selection=ResPartnerRelationType._get_partner_types.im_func,
+        selection=ResPartnerRelationType.get_partner_types.im_func,
         string='Other record\'s partner type',
     )
     partner_category_this = fields.Many2one(
@@ -105,6 +105,7 @@ class ResPartnerRelationTypeSelection(models.Model):
     @api.model
     def name_search(self, name='', args=None, operator='ilike', limit=100):
         """Search for name or inverse name in underlying model."""
+        # pylint: disable=no-value-for-parameter
         return self.search(
             [
                 '|',

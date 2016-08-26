@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # © 2013-2016 Therp BV <http://therp.nl>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+"""Store relations (connections) between partners."""
 from openerp import _, api, exceptions, fields, models
 
 
@@ -121,6 +122,8 @@ class ResPartnerRelation(models.Model):
 
         :raises exceptions.Warning: When constraint is violated
         """
+        # pylint: disable=no-member
+        # pylint: disable=no-value-for-parameter
         domain = [
             ('type_id', '=', self.type_id.id),
             ('id', '!=', self.id),
