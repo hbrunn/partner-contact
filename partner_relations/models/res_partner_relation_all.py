@@ -306,6 +306,7 @@ class ResPartnerRelationAll(models.AbstractModel):
         type_id = selection.type_id.id
         is_inverse = selection.is_inverse
         vals['type_id'] = type_id
+        del vals['type_selection_id']
         # Need to switch right and left partner if we are in reverse id:
         if 'left_partner_id' in vals or 'right_partner_id' in vals:
             if is_inverse:

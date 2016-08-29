@@ -58,6 +58,12 @@ class ResPartnerRelationTypeSelection(models.Model):
         comodel_name='res.partner.category',
         string='Other record\'s category',
     )
+    allow_self = fields.Boolean(
+        string='Reflexive',
+    )
+    symmetric = fields.Boolean(
+        string='Symmetric',
+    )
 
     def _auto_init(self, cr, context=None):
         drop_view_if_exists(cr, self._table)
@@ -71,7 +77,9 @@ class ResPartnerRelationTypeSelection(models.Model):
                 contact_type_left AS contact_type_this,
                 contact_type_right AS contact_type_other,
                 partner_category_left AS partner_category_this,
-                partner_category_right AS partner_category_other
+                partner_category_right AS partner_category_other,
+                allow_self,
+                "symmetric"
             FROM %(underlying_table)s
             UNION SELECT
                 id * %(padding)s + 1,
@@ -81,8 +89,12 @@ class ResPartnerRelationTypeSelection(models.Model):
                 contact_type_right,
                 contact_type_left,
                 partner_category_right,
-                partner_category_left
-             FROM %(underlying_table)s""",
+                partner_category_left,
+                allow_self,
+                "symmetric"
+             FROM %(underlying_table)s
+             WHERE not "symmetric"
+            """,
             {
                 'table': AsIs(self._table),
                 'padding': PADDING,
