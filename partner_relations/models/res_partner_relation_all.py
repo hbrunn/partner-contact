@@ -367,21 +367,18 @@ CREATE OR REPLACE VIEW %(table)s AS
                 '|',
                 ('partner_category_this', '=', False),
                 ('partner_category_this', 'in',
-                 self.this_partner_id.category_id.ids
-                ),
+                 self.this_partner_id.category_id.ids),
             ]
         if self.other_partner_id:
             type_selection_domain += [
                 '|',
                 ('contact_type_other', '=', False),
                 ('contact_type_other', '=',
-                 self.other_partner_id.get_partner_type()
-                ),
+                 self.other_partner_id.get_partner_type()),
                 '|',
                 ('partner_category_other', '=', False),
                 ('partner_category_other', 'in',
-                 self.other_partner_id.category_id.ids
-                ),
+                 self.other_partner_id.category_id.ids),
             ]
         result = {'domain': {
             'type_selection_id': type_selection_domain,

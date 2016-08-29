@@ -58,6 +58,7 @@ class ResPartnerRelationType(models.Model):
     )
     is_symmetric = fields.Boolean(
         string='Symmetric',
+        old_name='symmetric',
         help="This relation is the same from right to left as from left to"
              " right",
         default=False,
