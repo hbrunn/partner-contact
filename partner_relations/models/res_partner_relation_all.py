@@ -84,40 +84,46 @@ class ResPartnerRelationAll(models.AbstractModel):
         additional_view_fields = (',' + additional_view_fields)\
             if additional_view_fields else ''
         cr.execute(
-            """create or replace view %(table)s as
-            select
-                id * %(padding)s as id,
-                id as relation_id,
-                cast('a' as char(1)) as record_type,
-                left_partner_id as this_partner_id,
-                right_partner_id as other_partner_id,
-                date_start,
-                date_end,
-                (date_end is NULL OR date_end >= current_date) as active,
-                type_id * %(padding)s as type_selection_id
-                %(additional_view_fields)s
-            from %(underlying_table)s
-            union select
-                id * %(padding)s + 1,
-                id,
-                cast('b' as char(1)),
-                right_partner_id,
-                left_partner_id,
-                date_start,
-                date_end,
-                date_end is NULL OR date_end >= current_date,
-                type_id * %(padding)s + 1
-                %(additional_view_fields)s
-            from %(underlying_table)s""",
+            """\
+CREATE OR REPLACE VIEW %(table)s AS
+    SELECT
+        rel.id * %(padding)s AS id,
+        rel.id AS relation_id,
+        cast('a' AS CHAR(1)) AS record_type,
+        rel.left_partner_id AS this_partner_id,
+        rel.right_partner_id AS other_partner_id,
+        rel.date_start,
+        rel.date_end,
+        (rel.date_end IS NULL OR rel.date_end >= current_date) AS active,
+        rel.type_id * %(padding)s AS type_selection_id
+        %(additional_view_fields)s
+    FROM res_partner_relation rel
+    UNION SELECT
+        rel.id * %(padding)s + 1,
+        rel.id,
+        CAST('b' AS CHAR(1)),
+        rel.right_partner_id,
+        rel.left_partner_id,
+        rel.date_start,
+        rel.date_end,
+        rel.date_end IS NULL OR rel.date_end >= current_date,
+        CASE
+            WHEN typ."symmetric" THEN rel.type_id * %(padding)s
+            ELSE rel.type_id * %(padding)s + 1
+        END
+        %(additional_view_fields)s
+    FROM res_partner_relation rel
+    JOIN res_partner_relation_type typ ON (rel.type_id = typ.id)
+            """,
             {
                 'table': AsIs(self._table),
                 'padding': PADDING,
                 'additional_view_fields': AsIs(additional_view_fields),
-                'underlying_table': AsIs('res_partner_relation'),
             }
         )
         return super(ResPartnerRelationAll, self)._auto_init(
-            cr, context=context)
+            cr, context=context
+        )
 
     @api.depends('this_partner_id', 'other_partner_id')
     def _compute_any_partner_id(self):
