@@ -48,44 +48,44 @@ class ResPartnerRelation(models.Model):
             vals['left_partner_id'] = context.get('active_id')
         return super(ResPartnerRelation, self).create(vals)
 
-    @api.one
     @api.constrains('date_start', 'date_end')
     def _check_dates(self):
         """End date should not be before start date, if not filled
 
         :raises exceptions.Warning: When constraint is violated
         """
+        self.ensure_one()
         if (self.date_start and self.date_end and
                 self.date_start > self.date_end):
             raise exceptions.Warning(
                 _('The starting date cannot be after the ending date.')
             )
 
-    @api.one
     @api.constrains('left_partner_id', 'type_id')
     def _check_partner_type_left(self):
         """Check left partner for required company or person
 
         :raises exceptions.Warning: When constraint is violated
         """
+        self.ensure_one()
         self._check_partner_type("left")
 
-    @api.one
     @api.constrains('right_partner_id', 'type_id')
     def _check_partner_type_right(self):
         """Check right partner for required company or person
 
         :raises exceptions.Warning: When constraint is violated
         """
+        self.ensure_one()
         self._check_partner_type("right")
 
-    @api.one
     def _check_partner_type(self, side):
         """Check partner to left or right for required company or person
 
         :param str side: left or right
         :raises exceptions.Warning: When constraint is violated
         """
+        self.ensure_one()
         assert side in ['left', 'right']
         ptype = getattr(self.type_id, "contact_type_%s" % side)
         company = getattr(self, '%s_partner_id' % side).is_company
@@ -95,20 +95,19 @@ class ResPartnerRelation(models.Model):
                 side
             )
 
-    @api.one
     @api.constrains('left_partner_id', 'right_partner_id')
     def _check_not_with_self(self):
         """Not allowed to link partner to same partner
 
         :raises exceptions.Warning: When constraint is violated
         """
+        self.ensure_one()
         if self.left_partner_id == self.right_partner_id:
             if not (self.type_id and self.type_id.allow_self):
                 raise exceptions.Warning(
                     _('Partners cannot have a relation with themselves.')
                 )
 
-    @api.one
     @api.constrains(
         'left_partner_id',
         'type_id',
@@ -124,6 +123,7 @@ class ResPartnerRelation(models.Model):
         """
         # pylint: disable=no-member
         # pylint: disable=no-value-for-parameter
+        self.ensure_one()
         domain = [
             ('type_id', '=', self.type_id.id),
             ('id', '!=', self.id),

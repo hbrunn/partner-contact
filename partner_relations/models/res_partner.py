@@ -99,8 +99,7 @@ class ResPartner(models.Model):
                 result,
                 [
                     ('relation_all_ids.type_selection_id.id', '=',
-                     relation_type.id
-                    ),
+                     relation_type.id),
                 ],
             ])
         return result

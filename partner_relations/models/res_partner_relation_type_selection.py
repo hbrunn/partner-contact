@@ -109,8 +109,7 @@ class ResPartnerRelationTypeSelection(models.Model):
         return [
             (this.id,
              this.is_inverse and this.type_id.name_inverse or
-             this.type_id.display_name
-            )
+             this.type_id.display_name)
             for this in self
         ]
 
