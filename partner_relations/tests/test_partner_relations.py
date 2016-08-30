@@ -10,190 +10,204 @@ from openerp.exceptions import ValidationError
 class TestPartnerRelation(common.TransactionCase):
 
     def setUp(self):
-
         super(TestPartnerRelation, self).setUp()
 
         self.partner_model = self.env['res.partner']
-        self.relation_type_model = self.env['res.partner.relation.type']
+        self.type_model = self.env['res.partner.relation.type']
+        self.selection_model = self.env['res.partner.relation.type.selection']
         self.relation_model = self.env['res.partner.relation']
-
-        self.partner_1 = self.partner_model.create({
+        self.relation_all_model = self.env['res.partner.relation.all']
+        self.partner_01_person = self.partner_model.create({
             'name': 'Test User 1',
             'is_company': False,
+            'ref': 'PR01',
         })
-
-        self.partner_2 = self.partner_model.create({
+        self.partner_02_company = self.partner_model.create({
             'name': 'Test Company',
             'is_company': True,
+            'ref': 'PR02',
         })
-
-        self.relation_allow = self.relation_type_model.create({
+        self.type_allow = self.type_model.create({
             'name': 'allow',
             'name_inverse': 'allow_inverse',
             'contact_type_left': 'p',
             'contact_type_right': 'p',
             'allow_self': True
         })
-
-        self.relation_disallow = self.relation_type_model.create({
+        self.type_disallow = self.type_model.create({
             'name': 'disallow',
             'name_inverse': 'disallow_inverse',
             'contact_type_left': 'p',
             'contact_type_right': 'p',
             'allow_self': False
         })
-
-        self.relation_default = self.relation_type_model.create({
+        self.type_default = self.type_model.create({
             'name': 'default',
             'name_inverse': 'default_inverse',
             'contact_type_left': 'p',
             'contact_type_right': 'p',
         })
-
-        self.relation_mixed = self.relation_type_model.create({
+        self.type_company2person = self.type_model.create({
             'name': 'mixed',
             'name_inverse': 'mixed_inverse',
             'contact_type_left': 'c',
             'contact_type_right': 'p',
         })
-
-        self.relation_symmetric = self.relation_type_model.create({
-            'name': 'sym',
-            'name_inverse': 'sym',
-            'symmetric': True,
-        })
+        # Determine the two records in res.partner.type.selection that came
+        # into existance by creating one res.partner.relation.type:
+        selection_types = self.selection_model.search([
+            ('type_id', '=', self.type_company2person.id),
+        ])
+        for st in selection_types:
+            if st.is_inverse:
+                self.selection_person2company = st
+            else:
+                self.selection_company2person = st
+        assert self.selection_person2company, (
+            "Failed to create person to company selection in setup."
+        )
+        assert self.selection_company2person, (
+            "Failed to create company to person selection in setup."
+        )
 
     def test_self_allowed(self):
+        """Test creation of relation to same partner when type allows."""
         self.relation_model.create({
-            'type_id': self.relation_allow.id,
-            'left_partner_id': self.partner_1.id,
-            'right_partner_id': self.partner_1.id,
+            'type_id': self.type_allow.id,
+            'left_partner_id': self.partner_01_person.id,
+            'right_partner_id': self.partner_01_person.id,
         })
 
     def test_self_disallowed(self):
+        """Test creating relation to same partner when disallowed.
+        
+        Attempt to create a relation of a partner to the same partner should
+        raise an error when the type of relation explicitly disallows this.
+        """
         with self.assertRaises(ValidationError):
             self.relation_model.create({
-                'type_id': self.relation_disallow.id,
-                'left_partner_id': self.partner_1.id,
-                'right_partner_id': self.partner_1.id,
+                'type_id': self.type_disallow.id,
+                'left_partner_id': self.partner_01_person.id,
+                'right_partner_id': self.partner_01_person.id,
             })
 
     def test_self_default(self):
+        """Test default not to allow relation with same partner.
+        
+        Attempt to create a relation of a partner to the same partner
+        raise an error when the type of relation does not explicitly allow
+        this.
+        """
         with self.assertRaises(ValidationError):
             self.relation_model.create({
-                'type_id': self.relation_default.id,
-                'left_partner_id': self.partner_1.id,
-                'right_partner_id': self.partner_1.id,
+                'type_id': self.type_default.id,
+                'left_partner_id': self.partner_01_person.id,
+                'right_partner_id': self.partner_01_person.id,
             })
 
     def test_self_mixed(self):
+        """Test creation of realion with wrong types.
+        
+        Trying to create a relation between partners with an inappropiate
+        type should raise an error.
+        """
         with self.assertRaises(ValidationError):
             self.relation_model.create({
-                'type_id': self.relation_mixed.id,
-                'left_partner_id': self.partner_1.id,
-                'right_partner_id': self.partner_2.id,
+                'type_id': self.type_company2person.id,
+                'left_partner_id': self.partner_01_person.id,
+                'right_partner_id': self.partner_02_company.id,
             })
 
     def test_searching(self):
-        relation = self.relation_model.create({
-            'type_id': self.relation_mixed.id,
-            'left_partner_id': self.partner_2.id,
-            'right_partner_id': self.partner_1.id,
+        """Test searching on relations.
+        
+        Interaction with the relations should always be through
+        res.partner.relation.all.
+        """
+        relation = self.relation_all_model.create({
+            'type_selection_id': self.selection_company2person.id,
+            'this_partner_id': self.partner_02_company.id,
+            'other_partner_id': self.partner_01_person.id,
         })
-        partners = self.env['res.partner'].search([
-            ('search_relation_id', '=', relation.type_selection_id.id)
+        partners = self.partner_model.search([
+            ('search_relation_type_id', '=', relation.type_selection_id.id)
         ])
-        self.assertTrue(self.partner_2 in partners)
-
-        partners = self.env['res.partner'].search([
-            ('search_relation_id', '!=', relation.type_selection_id.id)
+        self.assertTrue(self.partner_02_company in partners)
+        partners = self.partner_model.search([
+            ('search_relation_type_id', '!=', relation.type_selection_id.id)
         ])
-        self.assertTrue(self.partner_1 in partners)
-
-        partners = self.env['res.partner'].search([
-            ('search_relation_id', '=', self.relation_mixed.name)
+        self.assertTrue(self.partner_01_person in partners)
+        partners = self.partner_model.search([
+            ('search_relation_type_id', '=', self.type_company2person.name)
         ])
-        self.assertTrue(self.partner_1 in partners)
-        self.assertTrue(self.partner_2 in partners)
-
-        partners = self.env['res.partner'].search([
-            ('search_relation_id', '=', 'unknown relation')
+        self.assertTrue(self.partner_01_person in partners)
+        self.assertTrue(self.partner_02_company in partners)
+        partners = self.partner_model.search([
+            ('search_relation_type_id', '=', 'unknown relation')
         ])
         self.assertFalse(partners)
-
-        partners = self.env['res.partner'].search([
-            ('search_relation_partner_id', '=', self.partner_2.id),
+        partners = self.partner_model.search([
+            ('search_relation_partner_id', '=', self.partner_02_company.id),
         ])
-        self.assertTrue(self.partner_1 in partners)
-
-        partners = self.env['res.partner'].search([
+        self.assertTrue(self.partner_01_person in partners)
+        partners = self.partner_model.search([
             ('search_relation_date', '=', fields.Date.today()),
         ])
-        self.assertTrue(self.partner_1 in partners)
-        self.assertTrue(self.partner_2 in partners)
-
-    def test_ui_functions(self):
-        relation = self.relation_model.create({
-            'type_id': self.relation_mixed.id,
-            'left_partner_id': self.partner_2.id,
-            'right_partner_id': self.partner_1.id,
-        })
-        self.assertEqual(relation.type_selection_id.type_id, relation.type_id)
-        relation = relation.with_context(
-            active_id=self.partner_1.id,
-            active_ids=self.partner_1.ids,
-            active_model='res.partner.relation',
-        )
-        relation.read()
-        domain = relation._onchange_type_selection_id()['domain']
-        self.assertTrue(
-            ('is_company', '=', True) in domain['partner_id_display']
-        )
-        relation.write({
-            'type_selection_id': relation.type_selection_id.id,
-        })
-        action = relation.get_action_related_partners()
-        self.assertTrue(self.partner_1.id in action['domain'][0][2])
+        self.assertTrue(self.partner_01_person in partners)
+        self.assertTrue(self.partner_02_company in partners)
 
     def test_relation_all(self):
-        relation_all_record = self.env['res.partner.relation.all']\
-            .with_context(
-                active_id=self.partner_2.id,
-                active_ids=self.partner_2.ids,
+        """Test interactions through res.partner.relation.all."""
+        relation_all_record = self.relation_all_model.with_context(
+            active_id=self.partner_02_company.id,
+            active_ids=self.partner_02_company.ids,
         ).create({
-            'other_partner_id': self.partner_1.id,
-            'type_selection_id': self.relation_mixed.id * 10,
+            'other_partner_id': self.partner_01_person.id,
+            'type_selection_id': self.selection_company2person.id,
         })
         self.assertEqual(
             relation_all_record.display_name, '%s %s %s' % (
-                self.partner_2.name,
+                self.partner_02_company.name,
                 'mixed',
-                self.partner_1.name,
+                self.partner_01_person.name,
             )
         )
-
         domain = relation_all_record.onchange_type_selection_id()['domain']
         self.assertTrue(
-            ('is_company', '=', False) in domain['other_partner_id'])
-        domain = relation_all_record.onchange_this_partner_id()['domain']
+            ('is_company', '=', False) in domain['other_partner_id']
+        )
+        domain = relation_all_record.onchange_partner_id()['domain']
         self.assertTrue(
-            ('contact_type_this', '=', 'c') in domain['type_selection_id'])
-
+            ('contact_type_this', '=', 'c') in domain['type_selection_id']
+        )
         relation_all_record.write({
-            'type_id': self.relation_mixed.id,
+            'type_id': self.type_company2person.id,
         })
+        # Check wether underlying record is removed when record is removed:
         relation = relation_all_record.relation_id
         relation_all_record.unlink()
         self.assertFalse(relation.exists())
 
     def test_symmetric(self):
-        relation = self.relation_model.create({
-            'type_id': self.relation_symmetric.id,
-            'left_partner_id': self.partner_2.id,
-            'right_partner_id': self.partner_1.id,
+        """Test creating symmetric relation."""
+        type_symmetric = self.type_model.create({
+            'name': 'sym',
+            'name_inverse': 'sym',
+            'symmetric': True,
         })
-        partners = self.env['res.partner'].search([
-            ('search_relation_id', '=', relation.type_selection_id.id)
+        # symmetric relation should result in only one record in
+        # selection:
+        selection_symmetric = self.selection_model.search([
+            ('type_id', '=', type_symmetric.id),
         ])
-        self.assertTrue(self.partner_1 in partners)
-        self.assertTrue(self.partner_2 in partners)
+        self.assertEqual(len(selection_symmetric), 1)
+        relation = self.relation_all_model.create({
+            'type_selection_id': selection_symmetric.id,
+            'this_partner_id': self.partner_02_company.id,
+            'other_partner_id': self.partner_01_person.id,
+        })
+        partners = self.partner_model.search([
+            ('search_relation_type_id', '=', relation.type_selection_id.id)
+        ])
+        self.assertTrue(self.partner_01_person in partners)
+        self.assertTrue(self.partner_02_company in partners)

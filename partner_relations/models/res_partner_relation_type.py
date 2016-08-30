@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 # © 2013-2016 Therp BV <http://therp.nl>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
-from openerp import models, fields, api, _
+"""Define the type of relations that can exist between partners."""
+from openerp import _, api, fields, models
 
 
 class ResPartnerRelationType(models.Model):
@@ -11,55 +12,59 @@ class ResPartnerRelationType(models.Model):
     _order = 'name'
 
     name = fields.Char(
-        'Name',
+        string='Name',
         required=True,
         translate=True,
     )
     name_inverse = fields.Char(
-        'Inverse name',
+        string='Inverse name',
         required=True,
         translate=True,
     )
     contact_type_left = fields.Selection(
-        '_get_partner_types',
-        'Left partner type',
+        selection='get_partner_types',
+        string='Left partner type',
     )
     contact_type_right = fields.Selection(
-        '_get_partner_types',
-        'Right partner type',
+        selection='get_partner_types',
+        string='Right partner type',
     )
     partner_category_left = fields.Many2one(
-        'res.partner.category',
-        'Left partner category',
+        comodel_name='res.partner.category',
+        string='Left partner category',
     )
     partner_category_right = fields.Many2one(
-        'res.partner.category',
-        'Right partner category',
+        comodel_name='res.partner.category',
+        string='Right partner category',
     )
     allow_self = fields.Boolean(
-        'Reflexive',
+        string='Reflexive',
         help='This relation can be set up with the same partner left and '
         'right',
         default=False,
     )
     symmetric = fields.Boolean(
-        'Symmetric',
-        help='This relation is the same from right to left as from left to '
-        'right',
+        string='Symmetric',
+        help="This relation is the same from right to left as from left to"
+             " right",
         default=False,
     )
 
     @api.model
-    def _get_partner_types(self):
+    def get_partner_types(self):
+        """A partner can be an organisation or an individual."""
+        # pylint: disable=no-self-use
         return [
-            ('c', _('Company')),
+            ('c', _('Organisation')),
             ('p', _('Person')),
         ]
 
     @api.onchange('symmetric')
     def _onchange_symmetric(self):
-        self.update({
-            'name_inverse': self.name,
-            'contact_type_right': self.contact_type_left,
-            'partner_category_right': self.partner_category_left,
-        })
+        """Set right side to left side if symmetric."""
+        if self.symmetric:
+            self.update({
+                'name_inverse': self.name,
+                'contact_type_right': self.contact_type_left,
+                'partner_category_right': self.partner_category_left,
+            })
