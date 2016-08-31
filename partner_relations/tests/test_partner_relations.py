@@ -80,7 +80,7 @@ class TestPartnerRelation(common.TransactionCase):
 
     def test_self_disallowed(self):
         """Test creating relation to same partner when disallowed.
-        
+
         Attempt to create a relation of a partner to the same partner should
         raise an error when the type of relation explicitly disallows this.
         """
@@ -93,7 +93,7 @@ class TestPartnerRelation(common.TransactionCase):
 
     def test_self_default(self):
         """Test default not to allow relation with same partner.
-        
+
         Attempt to create a relation of a partner to the same partner
         raise an error when the type of relation does not explicitly allow
         this.
@@ -107,7 +107,7 @@ class TestPartnerRelation(common.TransactionCase):
 
     def test_self_mixed(self):
         """Test creation of realion with wrong types.
-        
+
         Trying to create a relation between partners with an inappropiate
         type should raise an error.
         """
@@ -120,7 +120,7 @@ class TestPartnerRelation(common.TransactionCase):
 
     def test_searching(self):
         """Test searching on relations.
-        
+
         Interaction with the relations should always be through
         res.partner.relation.all.
         """
