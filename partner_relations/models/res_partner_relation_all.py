@@ -108,7 +108,7 @@ CREATE OR REPLACE VIEW %(table)s AS
         rel.date_end,
         rel.date_end IS NULL OR rel.date_end >= current_date,
         CASE
-            WHEN typ."symmetric" THEN rel.type_id * %(padding)s
+            WHEN typ.is_symmetric THEN rel.type_id * %(padding)s
             ELSE rel.type_id * %(padding)s + 1
         END
         %(additional_view_fields)s

@@ -43,8 +43,9 @@ class ResPartnerRelationType(models.Model):
         'right',
         default=False,
     )
-    symmetric = fields.Boolean(
+    is_symmetric = fields.Boolean(
         string='Symmetric',
+        old_name='symmetric',
         help="This relation is the same from right to left as from left to"
              " right",
         default=False,
@@ -59,10 +60,10 @@ class ResPartnerRelationType(models.Model):
             ('p', _('Person')),
         ]
 
-    @api.onchange('symmetric')
-    def _onchange_symmetric(self):
+    @api.onchange('is_symmetric')
+    def onchange_is_symmetric(self):
         """Set right side to left side if symmetric."""
-        if self.symmetric:
+        if self.is_symmetric:
             self.update({
                 'name_inverse': self.name,
                 'contact_type_right': self.contact_type_left,

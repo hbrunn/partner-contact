@@ -27,26 +27,6 @@ class TestPartnerRelation(common.TransactionCase):
             'is_company': True,
             'ref': 'PR02',
         })
-        self.type_allow = self.type_model.create({
-            'name': 'allow',
-            'name_inverse': 'allow_inverse',
-            'contact_type_left': 'p',
-            'contact_type_right': 'p',
-            'allow_self': True
-        })
-        self.type_disallow = self.type_model.create({
-            'name': 'disallow',
-            'name_inverse': 'disallow_inverse',
-            'contact_type_left': 'p',
-            'contact_type_right': 'p',
-            'allow_self': False
-        })
-        self.type_default = self.type_model.create({
-            'name': 'default',
-            'name_inverse': 'default_inverse',
-            'contact_type_left': 'p',
-            'contact_type_right': 'p',
-        })
         self.type_company2person = self.type_model.create({
             'name': 'mixed',
             'name_inverse': 'mixed_inverse',
@@ -72,8 +52,15 @@ class TestPartnerRelation(common.TransactionCase):
 
     def test_self_allowed(self):
         """Test creation of relation to same partner when type allows."""
+        type_allow = self.type_model.create({
+            'name': 'allow',
+            'name_inverse': 'allow_inverse',
+            'contact_type_left': 'p',
+            'contact_type_right': 'p',
+            'allow_self': True
+        })
         self.relation_model.create({
-            'type_id': self.type_allow.id,
+            'type_id': type_allow.id,
             'left_partner_id': self.partner_01_person.id,
             'right_partner_id': self.partner_01_person.id,
         })
@@ -84,9 +71,16 @@ class TestPartnerRelation(common.TransactionCase):
         Attempt to create a relation of a partner to the same partner should
         raise an error when the type of relation explicitly disallows this.
         """
+        type_disallow = self.type_model.create({
+            'name': 'disallow',
+            'name_inverse': 'disallow_inverse',
+            'contact_type_left': 'p',
+            'contact_type_right': 'p',
+            'allow_self': False
+        })
         with self.assertRaises(ValidationError):
             self.relation_model.create({
-                'type_id': self.type_disallow.id,
+                'type_id': type_disallow.id,
                 'left_partner_id': self.partner_01_person.id,
                 'right_partner_id': self.partner_01_person.id,
             })
@@ -98,15 +92,21 @@ class TestPartnerRelation(common.TransactionCase):
         raise an error when the type of relation does not explicitly allow
         this.
         """
+        type_default = self.type_model.create({
+            'name': 'default',
+            'name_inverse': 'default_inverse',
+            'contact_type_left': 'p',
+            'contact_type_right': 'p',
+        })
         with self.assertRaises(ValidationError):
             self.relation_model.create({
-                'type_id': self.type_default.id,
+                'type_id': type_default.id,
                 'left_partner_id': self.partner_01_person.id,
                 'right_partner_id': self.partner_01_person.id,
             })
 
     def test_self_mixed(self):
-        """Test creation of realion with wrong types.
+        """Test creation of relation with wrong types.
 
         Trying to create a relation between partners with an inappropiate
         type should raise an error.
@@ -158,6 +158,8 @@ class TestPartnerRelation(common.TransactionCase):
 
     def test_relation_all(self):
         """Test interactions through res.partner.relation.all."""
+        # Check wether we can create connection from company to person,
+        # taking the particular company from the active records:
         relation_all_record = self.relation_all_model.with_context(
             active_id=self.partner_02_company.id,
             active_ids=self.partner_02_company.ids,
@@ -165,13 +167,25 @@ class TestPartnerRelation(common.TransactionCase):
             'other_partner_id': self.partner_01_person.id,
             'type_selection_id': self.selection_company2person.id,
         })
+        # Check wether display name is what we should expect:
         self.assertEqual(
             relation_all_record.display_name, '%s %s %s' % (
                 self.partner_02_company.name,
-                'mixed',
+                self.selection_company2person.name,
                 self.partner_01_person.name,
             )
         )
+        # Check wether the inverse record is present and looks like expected:
+        inverse_relation = self.relation_all_model.search([
+            ('this_partner_id', '=', self.partner_01_person.id),
+            ('other_partner_id', '=', self.partner_02_company.id),
+        ])
+        self.assertEqual(len(inverse_relation), 1)
+        self.assertEqual(
+            inverse_relation.type_selection_id.name,
+            self.selection_person2company.name
+        )
+        # Check wether on_change_type_selection works as expected:
         domain = relation_all_record.onchange_type_selection_id()['domain']
         self.assertTrue(
             ('is_company', '=', False) in domain['other_partner_id']
@@ -190,11 +204,48 @@ class TestPartnerRelation(common.TransactionCase):
 
     def test_symmetric(self):
         """Test creating symmetric relation."""
+        # Start out with non symmetric relation:
         type_symmetric = self.type_model.create({
-            'name': 'sym',
-            'name_inverse': 'sym',
-            'symmetric': True,
+            'name': 'not yet symmetric',
+            'name_inverse': 'the other side of not symmetric',
+            'is_symmetric': False,
+            'contact_type_left': False,
+            'contact_type_right': 'p',
         })
+        # not yet symmetric relation should result in two records in
+        # selection:
+        selection_symmetric = self.selection_model.search([
+            ('type_id', '=', type_symmetric.id),
+        ])
+        self.assertEqual(len(selection_symmetric), 2)
+        # Now change to symmetric and test name and inverse name:
+        with self.env.do_in_draft():
+            type_symmetric.write(
+                vals={
+                    'name': 'sym',
+                    'is_symmetric': True,
+                }
+            )
+        with self.env.do_in_onchange():
+            type_symmetric.onchange_is_symmetric()
+        self.assertEqual(type_symmetric.is_symmetric, True)
+        self.assertEqual(
+            type_symmetric.name_inverse,
+            type_symmetric.name
+        )
+        self.assertEqual(
+            type_symmetric.contact_type_right,
+            type_symmetric.contact_type_left
+        )
+        # now update the database:
+        type_symmetric.write(
+            vals={
+                'name': type_symmetric.name,
+                'is_symmetric': type_symmetric.is_symmetric,
+                'name_inverse': type_symmetric.name_inverse,
+                'contact_type_right': type_symmetric.contact_type_right,
+            }
+        )
         # symmetric relation should result in only one record in
         # selection:
         selection_symmetric = self.selection_model.search([

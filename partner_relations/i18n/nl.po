@@ -425,7 +425,7 @@ msgid "Starting date"
 msgstr "Datum ingang"
 
 #. module: partner_relations
-#: field:res.partner.relation.type,symmetric:0
+#: field:res.partner.relation.type,is_symmetric:0
 msgid "Symmetric"
 msgstr "Symmetrisch"
 
@@ -453,7 +453,7 @@ msgid "This relation can be set up with the same partner left and right"
 msgstr "Deze connectie kan een relatie met zichzelf verbinden"
 
 #. module: partner_relations
-#: help:res.partner.relation.type,symmetric:0
+#: help:res.partner.relation.type,is_symmetric:0
 msgid "This relation is the same from right to left as from left to right"
 msgstr ""
 "Deze connectie is van rechts naar links hetzelfde als van links naar rechts"

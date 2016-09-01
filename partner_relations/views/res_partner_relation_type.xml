@@ -9,7 +9,7 @@
                     <field name="contact_type_left" />
                     <field name="contact_type_right" />
                     <field name="allow_self" />
-                    <field name="symmetric" />
+                    <field name="is_symmetric" />
                 </tree>
             </field>
         </record>
@@ -31,7 +31,7 @@
                             <group
                                 string="Right side of relation"
                                 name="right"
-                                attrs="{'invisible': [('symmetric', '=', True)]}"
+                                attrs="{'invisible': [('is_symmetric', '=', True)]}"
                                 >
                                 <field name="name_inverse" />
                                 <field name="contact_type_right" />
@@ -40,7 +40,7 @@
                         </group>
                         <group name="properties" string="Properties">
                             <field name="allow_self" />
-                            <field name="symmetric" />
+                            <field name="is_symmetric" />
                         </group>
                     </sheet>
                 </form>
