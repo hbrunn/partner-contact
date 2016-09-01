@@ -41,6 +41,7 @@
                         <group name="properties" string="Properties">
                             <field name="allow_self" />
                             <field name="is_symmetric" />
+                            <field name="handle_invalid_onchange" />
                         </group>
                     </sheet>
                 </form>
