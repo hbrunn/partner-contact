@@ -13,6 +13,7 @@ class TestPartnerRelation(common.TransactionCase):
         super(TestPartnerRelation, self).setUp()
 
         self.partner_model = self.env['res.partner']
+        self.category_model = self.env['res.partner.category']
         self.type_model = self.env['res.partner.relation.type']
         self.selection_model = self.env['res.partner.relation.type.selection']
         self.relation_model = self.env['res.partner.relation']
@@ -33,6 +34,25 @@ class TestPartnerRelation(common.TransactionCase):
             'contact_type_left': 'c',
             'contact_type_right': 'p',
         })
+        # Create partners with specific categories:
+        self.category_01_ngo = self.category_model.create({
+            'name': 'NGO',
+        })
+        self.partner_03_ngo = self.partner_model.create({
+            'name': 'Test NGO',
+            'is_company': True,
+            'ref': 'PR03',
+            'category_id': [(4, self.category_01_ngo.id)],
+        })
+        self.category_02_volunteer = self.category_model.create({
+            'name': 'Volunteer',
+        })
+        self.partner_04_volunteer = self.partner_model.create({
+            'name': 'Test Volunteer',
+            'is_company': False,
+            'ref': 'PR04',
+            'category_id': [(4, self.category_02_volunteer.id)],
+        })
         # Determine the two records in res.partner.type.selection that came
         # into existance by creating one res.partner.relation.type:
         selection_types = self.selection_model.search([
@@ -48,6 +68,30 @@ class TestPartnerRelation(common.TransactionCase):
         )
         assert self.selection_company2person, (
             "Failed to create company to person selection in setup."
+        )
+        # Create realion type between NGO and volunteer, and then lookup
+        # resulting type_selection_id's:
+        self.type_ngo2volunteer = self.type_model.create({
+            'name': 'NGO has volunteer',
+            'name_inverse': 'volunteer works for NGO',
+            'contact_type_left': 'c',
+            'contact_type_right': 'p',
+            'partner_category_left': self.category_01_ngo.id,
+            'partner_category_right': self.category_02_volunteer.id,
+        })
+        selection_types = self.selection_model.search([
+            ('type_id', '=', self.type_ngo2volunteer.id),
+        ])
+        for st in selection_types:
+            if st.is_inverse:
+                self.selection_volunteer2ngo = st
+            else:
+                self.selection_ngo2volunteer = st
+        assert self.selection_volunteer2ngo, (
+            "Failed to create volunteer to NGO selection in setup."
+        )
+        assert self.selection_ngo2volunteer, (
+            "Failed to create NGO to volunteer selection in setup."
         )
 
     def test_self_allowed(self):
@@ -262,3 +306,131 @@ class TestPartnerRelation(common.TransactionCase):
         ])
         self.assertTrue(self.partner_01_person in partners)
         self.assertTrue(self.partner_02_company in partners)
+
+    def test_category_domain(self):
+        """Test check on category in relations."""
+        # Check on left side:
+        with self.assertRaises(ValidationError):
+            self.relation_model.create({
+                'type_id': self.type_ngo2volunteer.id,
+                'left_partner_id': self.partner_02_company.id,
+                'right_partner_id': self.partner_04_volunteer.id,
+            })
+        # Check on right side:
+        with self.assertRaises(ValidationError):
+            self.relation_model.create({
+                'type_id': self.type_ngo2volunteer.id,
+                'left_partner_id': self.partner_03_ngo.id,
+                'right_partner_id': self.partner_01_person.id,
+            })
+        # Creating a relation with a type referring to a certain category
+        # should only allow partners for that category.
+        relation_all_record = self.relation_all_model.create({
+            'this_partner_id': self.partner_03_ngo.id,
+            'type_selection_id': self.selection_ngo2volunteer.id,
+            'other_partner_id': self.partner_04_volunteer.id,
+        })
+        # Check wether on_change_type_selection works as expected:
+        domain = relation_all_record.onchange_type_selection_id()['domain']
+        self.assertTrue(
+            ('category_id', 'in', [self.category_01_ngo.id]) in
+            domain['this_partner_id']
+        )
+        self.assertTrue(
+            ('category_id', 'in', [self.category_02_volunteer.id]) in
+            domain['other_partner_id']
+        )
+
+    def test_relation_type_change(self):
+        """Test change in relation type conditions."""
+        # First create a relation type having no particular conditions.
+        type_school2student = self.type_model.create({
+            'name': 'school has student',
+            'name_inverse': 'studies at school',
+        })
+        selection_types = self.selection_model.search([
+            ('type_id', '=', type_school2student.id),
+        ])
+        for st in selection_types:
+            if st.is_inverse:
+                student2school = st
+            else:
+                school2student = st
+        self.assertTrue(school2student)
+        self.assertTrue(student2school)
+        # Second create relations based on those conditions.
+        partner_school = self.partner_model.create({
+            'name': 'Test School',
+            'is_company': True,
+            'ref': 'TS',
+        })
+        partner_bart = self.partner_model.create({
+            'name': 'Bart Simpson',
+            'is_company': False,
+            'ref': 'BS',
+        })
+        partner_lisa = self.partner_model.create({
+            'name': 'Lisa Simpson',
+            'is_company': False,
+            'ref': 'LS',
+        })
+        relation_school2bart = self.relation_all_model.create({
+            'type_selection_id': school2student.id,
+            'this_partner_id': partner_school.id,
+            'other_partner_id': partner_bart.id,
+        })
+        self.assertTrue(relation_school2bart)
+        relation_school2lisa = self.relation_all_model.create({
+            'type_selection_id': school2student.id,
+            'this_partner_id': partner_school.id,
+            'other_partner_id': partner_lisa.id,
+        })
+        self.assertTrue(relation_school2lisa)
+        relation_bart2lisa = self.relation_all_model.create({
+            'type_selection_id': school2student.id,
+            'this_partner_id': partner_bart.id,
+            'other_partner_id': partner_lisa.id,
+        })
+        self.assertTrue(relation_bart2lisa)
+        # Third creata a category and make it a condition for the
+        #     relation type.
+        # - Test restriction
+        # - Test ignore
+        category_student = self.category_model.create({
+            'name': 'Student',
+        })
+        with self.assertRaises(ValidationError):
+            type_school2student.write({
+                'partner_category_right': category_student.id,
+            })
+        self.assertFalse(type_school2student.partner_category_right.id)
+        type_school2student.write({
+            'handle_invalid_onchange': 'ignore',
+            'partner_category_right': category_student.id,
+        })
+        self.assertEqual(
+            type_school2student.partner_category_right.id,
+            category_student.id
+        )
+        # Fourth make company type a condition for left partner
+        # - Test ending
+        # - Test deletion
+        partner_bart.write({
+            'category_id': [(4, category_student.id)],
+        })
+        partner_lisa.write({
+            'category_id': [(4, category_student.id)],
+        })
+        type_school2student.write({
+            'handle_invalid_onchange': 'end',
+            'contact_type_left': 'c',
+        })
+        self.assertEqual(
+            relation_bart2lisa.date_end,
+            fields.Date.today()
+        )
+        type_school2student.write({
+            'handle_invalid_onchange': 'delete',
+            'contact_type_left': 'c',
+        })
+        self.assertFalse(relation_bart2lisa.exists())
