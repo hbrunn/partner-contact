@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*/ codine: utf-8 -*-
 # © 2013-2016 Therp BV <http://therp.nl>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 """Define the type of relations that can exist between partners."""
@@ -166,7 +166,7 @@ class ResPartnerRelationType(models.Model):
                 if handling == 'restrict':
                     raise ValidationError(
                         _('There are already relations not satisfying the'
-                          'conditions for partner type or category.')
+                          ' conditions for partner type or category.')
                     )
                 elif handling == 'delete':
                     invalid_relations.unlink()

@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-08-24 23:32+0000\n"
-"PO-Revision-Date: 2016-08-24 23:32+0000\n"
+"POT-Creation-Date: 2016-09-02 12:39+0000\n"
+"PO-Revision-Date: 2016-09-02 12:39+0000\n"
 "Last-Translator: <>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:169
+#: code:addons/partner_relations/models/res_partner_relation_all.py:178
 #, python-format
 msgid "%s partner incompatible with relation type."
 msgstr ""
@@ -52,9 +52,10 @@ msgid "All relations with current partner"
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_type.py:55
+#: code:addons/partner_relations/models/res_partner_relation_type.py:13
+#: selection:res.partner.relation.type,handle_invalid_onchange:0
 #, python-format
-msgid "Company"
+msgid "Allow existing relations that do not fit changed conditions"
 msgstr ""
 
 #. module: partner_relations
@@ -80,6 +81,13 @@ msgid "Current record's partner type"
 msgstr ""
 
 #. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation_type.py:17
+#: selection:res.partner.relation.type,handle_invalid_onchange:0
+#, python-format
+msgid "Delete relations that do not fit changed conditions"
+msgstr ""
+
+#. module: partner_relations
 #: field:res.partner.relation,right_partner_id:0
 msgid "Destination Partner"
 msgstr ""
@@ -93,14 +101,28 @@ msgid "Display Name"
 msgstr ""
 
 #. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation_type.py:11
+#: selection:res.partner.relation.type,handle_invalid_onchange:0
+#, python-format
+msgid "Do not allow change that will result in invalid relations"
+msgstr ""
+
+#. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation_type.py:15
+#: selection:res.partner.relation.type,handle_invalid_onchange:0
+#, python-format
+msgid "End relations per today, if they do not fit changed conditions"
+msgstr ""
+
+#. module: partner_relations
 #: field:res.partner.relation,date_end:0
 #: field:res.partner.relation.all,date_end:0
 msgid "Ending date"
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:175
-#: code:addons/partner_relations/models/res_partner_relation_all.py:250
+#: code:addons/partner_relations/models/res_partner_relation_all.py:184
+#: code:addons/partner_relations/models/res_partner_relation_all.py:259
 #, python-format
 msgid "Error!"
 msgstr ""
@@ -151,6 +173,11 @@ msgstr ""
 #. module: partner_relations
 #: view:res.partner.relation.all:partner_relations.search_res_partner_relation_all
 msgid "Include past records"
+msgstr ""
+
+#. module: partner_relations
+#: field:res.partner.relation.type,handle_invalid_onchange:0
+msgid "Invalid relation handling"
 msgstr ""
 
 #. module: partner_relations
@@ -231,13 +258,13 @@ msgid "Name"
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:172
+#: code:addons/partner_relations/models/res_partner_relation_all.py:181
 #, python-format
 msgid "No %s partner available for relation type."
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:247
+#: code:addons/partner_relations/models/res_partner_relation_all.py:256
 #, python-format
 msgid "No relation type available for selected partners."
 msgstr ""
@@ -246,6 +273,12 @@ msgstr ""
 #: view:res.partner.relation.all:partner_relations.search_res_partner_relation_all
 #: field:res.partner.relation.all,this_partner_id:0
 msgid "One Partner"
+msgstr ""
+
+#. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation_type.py:82
+#, python-format
+msgid "Organisation"
 msgstr ""
 
 #. module: partner_relations
@@ -292,19 +325,13 @@ msgid "Partner relation"
 msgstr ""
 
 #. module: partner_relations
-#: model:ir.model,name:partner_relations.model_res_partner_relation_wizard
-#: model:ir.model,name:partner_relations.model_res_partner_relationi_wizard
-msgid "Partner relation wizard"
-msgstr ""
-
-#. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation.py:107
+#: code:addons/partner_relations/models/res_partner_relation.py:115
 #, python-format
 msgid "Partners cannot have a relation with themselves."
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_type.py:56
+#: code:addons/partner_relations/models/res_partner_relation_type.py:83
 #, python-format
 msgid "Person"
 msgstr ""
@@ -326,6 +353,7 @@ msgstr ""
 
 #. module: partner_relations
 #: field:res.partner.relation.type,allow_self:0
+#: field:res.partner.relation.type.selection,allow_self:0
 msgid "Reflexive"
 msgstr ""
 
@@ -345,7 +373,7 @@ msgid "Relation Type"
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:243
+#: code:addons/partner_relations/models/res_partner_relation_all.py:252
 #, python-format
 msgid "Relation type incompatible with selected partner(s)."
 msgstr ""
@@ -415,23 +443,36 @@ msgstr ""
 
 #. module: partner_relations
 #: field:res.partner.relation.type,is_symmetric:0
+#: field:res.partner.relation.type.selection,is_symmetric:0
 msgid "Symmetric"
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation.py:93
+#: code:addons/partner_relations/models/res_partner_relation.py:101
+#, python-format
+msgid "The %s partner does not have category %s."
+msgstr ""
+
+#. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation.py:95
 #, python-format
 msgid "The %s partner is not applicable for this relation type."
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation.py:60
+#: code:addons/partner_relations/models/res_partner_relation.py:61
 #, python-format
 msgid "The starting date cannot be after the ending date."
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation.py:144
+#: code:addons/partner_relations/models/res_partner_relation_type.py:168
+#, python-format
+msgid "There are already relations not satisfying the conditions for partner type or category."
+msgstr ""
+
+#. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation.py:154
 #, python-format
 msgid "There is already a similar relation with overlapping dates"
 msgstr ""
@@ -453,20 +494,27 @@ msgid "Type"
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner.py:69
-#: code:addons/partner_relations/models/res_partner.py:107
+#: code:addons/partner_relations/models/res_partner.py:80
+#: code:addons/partner_relations/models/res_partner.py:121
 #, python-format
 msgid "Unsupported search operator \"%s\""
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:212
+#: help:res.partner.relation.type,handle_invalid_onchange:0
+msgid "When adding relations criteria like partner type and category are checked.\n"
+"However when you change the criteria, there might be relations that do not fit the new criteria.\n"
+"Specify how this situation should be handled."
+msgstr ""
+
+#. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation_all.py:221
 #, python-format
 msgid "other"
 msgstr ""
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:206
+#: code:addons/partner_relations/models/res_partner_relation_all.py:215
 #, python-format
 msgid "this"
 msgstr ""
