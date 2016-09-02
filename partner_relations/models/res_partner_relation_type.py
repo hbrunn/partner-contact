@@ -186,7 +186,3 @@ class ResPartnerRelationType(models.Model):
         """Handle existing relations if conditions change."""
         self.check_existing(vals)
         return super(ResPartnerRelationType, self).write(vals)
-        vals = self._correct_vals(vals)
-        for rec in self:
-            rec.relation_id.write(vals)
-        return True
