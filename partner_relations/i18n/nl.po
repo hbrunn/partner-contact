@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: partner-contact (8.0)\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-08-24 23:32+0000\n"
-"PO-Revision-Date: 2016-08-25 13:54+0200\n"
+"POT-Creation-Date: 2016-09-02 12:39+0000\n"
+"PO-Revision-Date: 2016-09-02 15:03+0200\n"
 "Last-Translator: OCA Transbot <transbot@odoo-community.org>\n"
 "Language-Team: Dutch (http://www.transifex.com/oca/OCA-partner-contact-8-0/"
 "language/nl/)\n"
@@ -22,7 +22,7 @@ msgstr ""
 "X-Generator: Gtranslator 2.91.6\n"
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:169
+#: code:addons/partner_relations/models/res_partner_relation_all.py:178
 #, python-format
 msgid "%s partner incompatible with relation type."
 msgstr "%s relatie is onverenigbaar met gekozen connectietype."
@@ -64,10 +64,12 @@ msgid "All relations with current partner"
 msgstr "Alle connecties vanuit de huidige relatie"
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_type.py:55
+#: code:addons/partner_relations/models/res_partner_relation_type.py:13
+#: selection:res.partner.relation.type,handle_invalid_onchange:0
 #, python-format
-msgid "Company"
-msgstr "Bedrijf"
+msgid "Allow existing relations that do not fit changed conditions"
+msgstr ""
+"Sta bestaande connecties toe die niet voldoen aan de gewijzigde criteria"
 
 #. module: partner_relations
 #: field:res.partner.relation,create_uid:0
@@ -92,6 +94,13 @@ msgid "Current record's partner type"
 msgstr "Type van de huidige relatie"
 
 #. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation_type.py:17
+#: selection:res.partner.relation.type,handle_invalid_onchange:0
+#, python-format
+msgid "Delete relations that do not fit changed conditions"
+msgstr "Verwijder connecties die niet voldoen aan de gewijzigde condities"
+
+#. module: partner_relations
 #: field:res.partner.relation,right_partner_id:0
 msgid "Destination Partner"
 msgstr "Doel relatie"
@@ -105,14 +114,30 @@ msgid "Display Name"
 msgstr "Te tonen naam"
 
 #. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation_type.py:11
+#: selection:res.partner.relation.type,handle_invalid_onchange:0
+#, python-format
+msgid "Do not allow change that will result in invalid relations"
+msgstr "Sta geen wijziging toe die zal resulteren in ongeldige connecties"
+
+#. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation_type.py:15
+#: selection:res.partner.relation.type,handle_invalid_onchange:0
+#, python-format
+msgid "End relations per today, if they do not fit changed conditions"
+msgstr ""
+"Beëindig wijzigingen per vandaag indien ze niet voldoen aan de gewijzigde "
+"condities"
+
+#. module: partner_relations
 #: field:res.partner.relation,date_end:0
 #: field:res.partner.relation.all,date_end:0
 msgid "Ending date"
 msgstr "Einddatum"
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:175
-#: code:addons/partner_relations/models/res_partner_relation_all.py:250
+#: code:addons/partner_relations/models/res_partner_relation_all.py:184
+#: code:addons/partner_relations/models/res_partner_relation_all.py:259
 #, python-format
 msgid "Error!"
 msgstr "Fout!"
@@ -163,6 +188,11 @@ msgstr "ID"
 #: view:res.partner.relation.all:partner_relations.search_res_partner_relation_all
 msgid "Include past records"
 msgstr "Inclusief beëindigde connecties"
+
+#. module: partner_relations
+#: field:res.partner.relation.type,handle_invalid_onchange:0
+msgid "Invalid relation handling"
+msgstr "Afhandeling van ongeldige connecties"
 
 #. module: partner_relations
 #: field:res.partner.relation.type,name_inverse:0
@@ -218,7 +248,7 @@ msgstr "Categorie linkerrelatie"
 #. module: partner_relations
 #: selection:res.partner.relation.all,record_type:0
 msgid "Left partner to right partner"
-msgstr "Van linkernaar rechterrelatie"
+msgstr "Van linker naar rechterrelatie"
 
 #. module: partner_relations
 #: field:res.partner.relation.type,contact_type_left:0
@@ -242,13 +272,13 @@ msgid "Name"
 msgstr "Naam"
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:172
+#: code:addons/partner_relations/models/res_partner_relation_all.py:181
 #, python-format
 msgid "No %s partner available for relation type."
 msgstr "Geen %s relatie beschikbaar voor dit connectietype."
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:247
+#: code:addons/partner_relations/models/res_partner_relation_all.py:256
 #, python-format
 msgid "No relation type available for selected partners."
 msgstr "Geen connectietype beschikbaar voor verbinden van deze relaties."
@@ -258,6 +288,12 @@ msgstr "Geen connectietype beschikbaar voor verbinden van deze relaties."
 #: field:res.partner.relation.all,this_partner_id:0
 msgid "One Partner"
 msgstr "De ene relatie"
+
+#. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation_type.py:82
+#, python-format
+msgid "Organisation"
+msgstr "Organisatie"
 
 #. module: partner_relations
 #: view:res.partner.relation.all:partner_relations.search_res_partner_relation_all
@@ -279,7 +315,7 @@ msgstr "Type andere relatie"
 #: model:ir.model,name:partner_relations.model_res_partner
 #: field:res.partner.relation.all,any_partner_id:0
 msgid "Partner"
-msgstr "relatie"
+msgstr "Relatie"
 
 #. module: partner_relations
 #: model:ir.model,name:partner_relations.model_res_partner_relation_type
@@ -303,19 +339,13 @@ msgid "Partner relation"
 msgstr "Connectie"
 
 #. module: partner_relations
-#: model:ir.model,name:partner_relations.model_res_partner_relation_wizard
-#: model:ir.model,name:partner_relations.model_res_partner_relationi_wizard
-msgid "Partner relation wizard"
-msgstr "Connectie wizard"
-
-#. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation.py:107
+#: code:addons/partner_relations/models/res_partner_relation.py:115
 #, python-format
 msgid "Partners cannot have a relation with themselves."
 msgstr "Relaties kunnen geen connectie met zichzelf hebben"
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_type.py:56
+#: code:addons/partner_relations/models/res_partner_relation_type.py:83
 #, python-format
 msgid "Person"
 msgstr "Persoon"
@@ -337,6 +367,7 @@ msgstr "Connecties met een datum in het verleden zijn inactief"
 
 #. module: partner_relations
 #: field:res.partner.relation.type,allow_self:0
+#: field:res.partner.relation.type.selection,allow_self:0
 msgid "Reflexive"
 msgstr "Wederkerig"
 
@@ -356,7 +387,7 @@ msgid "Relation Type"
 msgstr "Type connectie"
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:243
+#: code:addons/partner_relations/models/res_partner_relation_all.py:252
 #, python-format
 msgid "Relation type incompatible with selected partner(s)."
 msgstr "Type connectie komt niet overeen met geselecteerde relatie(s)."
@@ -425,24 +456,41 @@ msgid "Starting date"
 msgstr "Datum ingang"
 
 #. module: partner_relations
-#: field:res.partner.relation.type,symmetric:0
+#: field:res.partner.relation.type,is_symmetric:0
+#: field:res.partner.relation.type.selection,is_symmetric:0
 msgid "Symmetric"
 msgstr "Symmetrisch"
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation.py:93
+#: code:addons/partner_relations/models/res_partner_relation.py:101
+#, fuzzy, python-format
+msgid "The %s partner does not have category %s."
+msgstr "De %s relatie is niet geldig voor dit type connectie."
+
+#. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation.py:95
 #, python-format
 msgid "The %s partner is not applicable for this relation type."
 msgstr "De %s relatie is niet geldig voor dit type connectie."
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation.py:60
+#: code:addons/partner_relations/models/res_partner_relation.py:61
 #, python-format
 msgid "The starting date cannot be after the ending date."
 msgstr "De ingangsdatum kan niet na de einddatum liggen."
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation.py:144
+#: code:addons/partner_relations/models/res_partner_relation_type.py:168
+#, python-format
+msgid ""
+"There are already relations not satisfying the conditions for partner type "
+"or category."
+msgstr ""
+"Er zijn al connecties die niet voldoen aan de criteria voor type relatie of "
+"categorie."
+
+#. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation.py:154
 #, python-format
 msgid "There is already a similar relation with overlapping dates"
 msgstr "Er is al een gelijkaardige connectie met overlappende geldigheid"
@@ -453,7 +501,7 @@ msgid "This relation can be set up with the same partner left and right"
 msgstr "Deze connectie kan een relatie met zichzelf verbinden"
 
 #. module: partner_relations
-#: help:res.partner.relation.type,symmetric:0
+#: help:res.partner.relation.type,is_symmetric:0
 msgid "This relation is the same from right to left as from left to right"
 msgstr ""
 "Deze connectie is van rechts naar links hetzelfde als van links naar rechts"
@@ -465,20 +513,37 @@ msgid "Type"
 msgstr "Type"
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner.py:69
-#: code:addons/partner_relations/models/res_partner.py:107
+#: code:addons/partner_relations/models/res_partner.py:80
+#: code:addons/partner_relations/models/res_partner.py:121
 #, python-format
 msgid "Unsupported search operator \"%s\""
 msgstr "Zoek operator \"%s\" wordt niet ondersteund "
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:212
+#: help:res.partner.relation.type,handle_invalid_onchange:0
+msgid ""
+"When adding relations criteria like partner type and category are checked.\n"
+"However when you change the criteria, there might be relations that do not "
+"fit the new criteria.\n"
+"Specify how this situation should be handled."
+msgstr ""
+"Bij het aanmaken van connecties vinden controles plaats op type en categorie "
+"van de relatie.\n"
+"Echter, wanneer u de criteria verandert, dan kunnen er al connecties bestaan "
+"die daar niet aan voldoen.\n"
+"Geef aan hoe zo'n situatie moet worden afgehandeld. "
+
+#. module: partner_relations
+#: code:addons/partner_relations/models/res_partner_relation_all.py:221
 #, python-format
 msgid "other"
 msgstr "andere"
 
 #. module: partner_relations
-#: code:addons/partner_relations/models/res_partner_relation_all.py:206
+#: code:addons/partner_relations/models/res_partner_relation_all.py:215
 #, python-format
 msgid "this"
 msgstr "deze"
+
+#~ msgid "Company"
+#~ msgstr "Bedrijf"

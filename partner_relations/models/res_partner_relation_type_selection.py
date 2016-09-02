@@ -61,7 +61,7 @@ class ResPartnerRelationTypeSelection(models.Model):
     allow_self = fields.Boolean(
         string='Reflexive',
     )
-    symmetric = fields.Boolean(
+    is_symmetric = fields.Boolean(
         string='Symmetric',
     )
 
@@ -79,7 +79,7 @@ class ResPartnerRelationTypeSelection(models.Model):
                 partner_category_left AS partner_category_this,
                 partner_category_right AS partner_category_other,
                 allow_self,
-                "symmetric"
+                is_symmetric
             FROM %(underlying_table)s
             UNION SELECT
                 id * %(padding)s + 1,
@@ -91,9 +91,9 @@ class ResPartnerRelationTypeSelection(models.Model):
                 partner_category_right,
                 partner_category_left,
                 allow_self,
-                "symmetric"
+                is_symmetric
              FROM %(underlying_table)s
-             WHERE not "symmetric"
+             WHERE not is_symmetric
             """,
             {
                 'table': AsIs(self._table),

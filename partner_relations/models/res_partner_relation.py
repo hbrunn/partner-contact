@@ -63,36 +63,43 @@ class ResPartnerRelation(models.Model):
 
     @api.one
     @api.constrains('left_partner_id', 'type_id')
-    def _check_partner_type_left(self):
+    def _check_partner_left(self):
         """Check left partner for required company or person
 
         :raises exceptions.Warning: When constraint is violated
         """
-        self._check_partner_type("left")
+        self._check_partner("left")
 
     @api.one
     @api.constrains('right_partner_id', 'type_id')
-    def _check_partner_type_right(self):
+    def _check_partner_right(self):
         """Check right partner for required company or person
 
         :raises exceptions.Warning: When constraint is violated
         """
-        self._check_partner_type("right")
+        self._check_partner("right")
 
     @api.one
-    def _check_partner_type(self, side):
-        """Check partner to left or right for required company or person
+    def _check_partner(self, side):
+        """Check partner for required company or person, and for category
 
         :param str side: left or right
         :raises exceptions.Warning: When constraint is violated
         """
         assert side in ['left', 'right']
         ptype = getattr(self.type_id, "contact_type_%s" % side)
-        company = getattr(self, '%s_partner_id' % side).is_company
-        if (ptype == 'c' and not company) or (ptype == 'p' and company):
+        partner = getattr(self, '%s_partner_id' % side)
+        if ((ptype == 'c' and not partner.is_company) or
+                (ptype == 'p' and partner.is_company)):
             raise exceptions.Warning(
                 _('The %s partner is not applicable for this relation type.') %
                 side
+            )
+        category = getattr(self.type_id, "partner_category_%s" % side)
+        if category and category.id not in partner.category_id.ids:
+            raise exceptions.Warning(
+                _('The %s partner does not have category %s.') %
+                (side, category.name)
             )
 
     @api.one
